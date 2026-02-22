@@ -45,12 +45,22 @@ The LLM runs natively on the host for full Metal GPU acceleration. The Docker co
 
 ## Common Commands
 
+The `./oc` wrapper script is a shortcut for `docker exec openclaw-sandbox openclaw`:
+
+```bash
+./oc health                       # Health check
+./oc models list                  # List configured models
+./oc skills list                  # List available skills
+./oc sessions                     # List active sessions
+```
+
+Docker Compose commands:
+
 ```bash
 docker compose up -d              # Start
 docker compose down               # Stop
 docker compose restart            # Restart after config changes
 docker compose logs -f            # Watch logs
-docker exec openclaw-sandbox openclaw health   # Health check
 ```
 
 ## Configuration

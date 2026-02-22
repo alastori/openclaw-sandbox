@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Shortcut for running openclaw commands inside the sandbox container.
+# Usage: ./oc health
+#        ./oc models list
+#        ./oc skills list
+#        ./oc sessions
+exec docker exec openclaw-sandbox openclaw "$@"
