@@ -11,7 +11,7 @@ echo ""
 # -------------------------------------------------------------------
 # 1. Pre-flight checks
 # -------------------------------------------------------------------
-echo "[1/6] Checking prerequisites..."
+echo "[1/7] Checking prerequisites..."
 
 if ! command -v docker &>/dev/null; then
     echo "ERROR: Docker is not installed. Install Docker or Colima first."
@@ -48,7 +48,7 @@ fi
 # 2. Test Docker-to-host networking
 # -------------------------------------------------------------------
 echo ""
-echo "[2/6] Testing Docker-to-host networking..."
+echo "[2/7] Testing Docker-to-host networking..."
 if docker run --rm --add-host=host.docker.internal:host-gateway alpine \
     sh -c "wget -qO- http://host.docker.internal:11434/v1/models" &>/dev/null; then
     echo "  Docker can reach Ollama via host.docker.internal"
@@ -61,14 +61,14 @@ fi
 # 3. Create directories
 # -------------------------------------------------------------------
 echo ""
-echo "[3/6] Creating config and workspace directories..."
+echo "[3/7] Creating config and workspace directories..."
 mkdir -p "$CONFIG_DIR" "$WORKSPACE_DIR"
 
 # -------------------------------------------------------------------
 # 4. Build the image
 # -------------------------------------------------------------------
 echo ""
-echo "[4/6] Building Docker image..."
+echo "[4/7] Building Docker image..."
 cd "$SCRIPT_DIR"
 docker compose build
 
@@ -76,7 +76,7 @@ docker compose build
 # 5. Initialize config if needed
 # -------------------------------------------------------------------
 echo ""
-echo "[5/6] Configuring OpenClaw..."
+echo "[5/7] Configuring OpenClaw..."
 
 if [ ! -f "$CONFIG_DIR/openclaw.json" ]; then
     if [ ! -f "$CONFIG_DIR/openclaw.json.example" ]; then
@@ -103,7 +103,7 @@ fi
 # 6. Start the gateway
 # -------------------------------------------------------------------
 echo ""
-echo "[6/6] Starting OpenClaw gateway..."
+echo "[6/7] Starting OpenClaw gateway..."
 docker compose up -d
 
 echo ""
@@ -115,6 +115,24 @@ if docker exec openclaw-sandbox openclaw health 2>/dev/null; then
     echo ""
 else
     echo "  Gateway starting up... check 'docker compose logs -f' for details."
+fi
+
+# -------------------------------------------------------------------
+# 7. Install DDG web search skill (no API key needed)
+# -------------------------------------------------------------------
+echo ""
+echo "[7/7] Installing DuckDuckGo search skill..."
+if docker exec openclaw-sandbox npx clawhub install ddg-web-search --no-input 2>/dev/null; then
+    docker exec openclaw-sandbox mkdir -p /home/node/.openclaw/workspace/skills
+    docker exec openclaw-sandbox cp -r /home/node/skills/ddg-web-search \
+        /home/node/.openclaw/workspace/skills/ 2>/dev/null
+    echo "  DDG search skill installed."
+    echo "  Restarting gateway to pick up new skill..."
+    docker compose restart
+    sleep 5
+else
+    echo "  WARNING: Could not install DDG search skill."
+    echo "  Install manually: docker exec openclaw-sandbox npx clawhub install ddg-web-search --no-input"
 fi
 
 echo ""

@@ -42,3 +42,4 @@ workspace/                      Agent workspace (gitignored)
 - `.gitignore` uses `config/*` with a negation for `!config/openclaw.json.example` -- everything else under `config/` is excluded
 - Never force-add files from `config/`
 - No PII or credentials in any tracked file
+- Elevated tools (shell exec, file write) are restricted to the Control UI via `tools.elevated.allowFrom`. Other channels (Telegram, etc.) cannot use elevated tools unless explicitly added to the allowlist — see `config/openclaw.json.example` for the format
