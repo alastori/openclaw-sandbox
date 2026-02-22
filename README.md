@@ -17,7 +17,13 @@ cd openclaw-sandbox
 ./setup.sh
 ```
 
-The setup script verifies prerequisites, tests networking, builds the Docker image, initializes config, and starts the gateway.
+The setup script verifies prerequisites, tests networking, builds the Docker image, initializes config, and starts the gateway. Once running, open the web UI:
+
+```
+./oc dashboard    # prints the URL with auth token
+```
+
+Or go directly to `http://127.0.0.1:18789/` and paste your gateway token from `config/openclaw.json`.
 
 ## Prerequisites
 
