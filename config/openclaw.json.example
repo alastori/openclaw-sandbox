@@ -29,6 +29,13 @@
     "port": 18789,
     "mode": "local"
   },
+  "tools": {
+    "web": {
+      "search": { "enabled": true },
+      "fetch": { "enabled": true }
+    },
+    "elevated": { "enabled": true }
+  },
   "plugins": {
     "entries": {
       "telegram": {
