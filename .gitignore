@@ -1,0 +1,25 @@
+# OpenClaw runtime data (config/* allows negation of specific files)
+config/*
+!config/openclaw.json.example
+workspace/
+
+# Secrets
+.env
+.env.*
+*.key
+*.pem
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+
+# Editors/IDEs
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Node
+node_modules/
