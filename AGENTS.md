@@ -10,6 +10,7 @@ Note: `CLAUDE.md` in the project root is a symlink to this file.
 Dockerfile                      Container image (node:22-bookworm-slim + openclaw CLI + python3)
 docker-compose.yml              Orchestration with security constraints
 setup.sh                        One-command setup script
+oc                              Host-side shortcut: ./oc <cmd> = docker exec ... openclaw <cmd>
 config/openclaw.json.example    Template config (tracked, no secrets)
 config/openclaw.json            Live config (gitignored, contains secrets)
 workspace/                      Agent workspace (gitignored)
@@ -28,7 +29,9 @@ workspace/                      Agent workspace (gitignored)
 - Container reaches Ollama via `host.docker.internal` (requires `extra_hosts: host-gateway` for Colima)
 - Container is limited to 2 GB memory and 2 CPU cores; the model runs on the host
 - Config format is JSON at `config/openclaw.json`
-- Gateway port is bound to localhost only (`127.0.0.1:18789`)
+- Gateway port is bound to localhost only (`127.0.0.1:18789`) via docker-compose
+- `gateway.bind: lan` is set so the gateway listens on `0.0.0.0` inside the container (required for Docker port forwarding and the Control UI)
+- Control UI is enabled at `http://127.0.0.1:18789/` via `gateway.controlUi.enabled: true`
 
 ## Security Notes
 
