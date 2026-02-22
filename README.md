@@ -106,7 +106,7 @@ docker exec openclaw-sandbox openclaw pairing approve telegram YOUR_CODE
 
 ### Enable web access
 
-Web access is enabled by default in the example config. If you removed it, re-add this block to `config/openclaw.json`:
+Web fetching (`web_fetch`) is enabled by default. The native `web_search` tool is **disabled** because it requires a Brave API key. Instead, web search is provided by the DuckDuckGo skill, which uses `web_fetch` to query DuckDuckGo Lite -- no API key needed.
 
 <details>
 <summary>Manual config</summary>
@@ -115,10 +115,9 @@ Web access is enabled by default in the example config. If you removed it, re-ad
 {
   "tools": {
     "web": {
-      "search": { "enabled": true },
-      "fetch": { "enabled": true }
-    },
-    "elevated": { "enabled": true }
+      "search": { "enabled": false },
+      "fetch": { "enabled": true, "maxChars": 30000 }
+    }
   }
 }
 ```
@@ -127,7 +126,7 @@ Restart the gateway and send `/reset` to the bot to pick up the new tools.
 
 </details>
 
-You can optionally install the DuckDuckGo search skill (no API key required):
+The DuckDuckGo search skill should be installed during setup. If it's missing:
 
 <details>
 <summary>Install DuckDuckGo skill</summary>
@@ -165,6 +164,8 @@ docker compose exec openclaw-gateway openclaw models fallbacks add github-copilo
 ### Change the model
 
 Edit `config/openclaw.json`, update the model ID under `models.providers.ollama.models` and `agents.defaults.model.primary`, then restart.
+
+> **Tip:** Also set `agents.defaults.contextTokens` to match your model's context window (minus ~15K headroom for system prompt and tool definitions). For example, a 65K context model should use `"contextTokens": 50000`.
 
 ## Recommended Models
 

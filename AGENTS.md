@@ -32,6 +32,8 @@ workspace/                      Agent workspace (gitignored)
 - Gateway port is bound to localhost only (`127.0.0.1:18789`) via docker-compose
 - `gateway.bind: lan` is set so the gateway listens on `0.0.0.0` inside the container (required for Docker port forwarding and the Control UI)
 - Control UI is enabled at `http://127.0.0.1:18789/` via `gateway.controlUi.enabled: true`
+- Native `web_search` is disabled (requires Brave API key); web search is provided by the DDG skill via `web_fetch` to DuckDuckGo Lite
+- `agents.defaults.contextTokens` is set to 50000 to stay within the model's 65K context window (leaving ~15K headroom for system prompt and tool definitions)
 
 ## Security Notes
 

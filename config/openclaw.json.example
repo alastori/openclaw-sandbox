@@ -17,6 +17,7 @@
   },
   "agents": {
     "defaults": {
+      "contextTokens": 50000,
       "model": {
         "primary": "ollama/qwen3-coder:30b-a3b-q8_0"
       },
@@ -29,14 +30,17 @@
     "port": 18789,
     "mode": "local",
     "bind": "lan",
-    "controlUi": { "enabled": true }
+    "controlUi": { "enabled": true },
+    "auth": { "mode": "token" }
   },
   "tools": {
     "web": {
-      "search": { "enabled": true },
-      "fetch": { "enabled": true }
+      "search": { "enabled": false },
+      "fetch": { "enabled": true, "maxChars": 30000 }
     },
-    "elevated": { "enabled": true }
+    "elevated": { "enabled": true, "allowFrom": { "controlui": ["*"] } },
+    "exec": { "timeoutSec": 120 },
+    "loopDetection": { "enabled": true }
   },
   "plugins": {
     "entries": {
@@ -44,5 +48,11 @@
         "enabled": true
       }
     }
+  },
+  "logging": {
+    "redactSensitive": "tools"
+  },
+  "discovery": {
+    "mdns": { "mode": "off" }
   }
 }
