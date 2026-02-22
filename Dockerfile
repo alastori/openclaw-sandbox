@@ -1,6 +1,6 @@
 FROM node:22-bookworm-slim
 
-# Install dependencies (build tools needed for native modules like @discordjs/opus)
+# Install build tools for native modules (e.g. @discordjs/opus)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     git \
@@ -13,8 +13,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install OpenClaw globally
 RUN npm install -g openclaw@latest
 
-# Remove build tools to reduce image size
-RUN apt-get purge -y build-essential python3 && apt-get autoremove -y
+# Remove build tools but keep python3 for agent tasks
+RUN apt-get purge -y build-essential && apt-get autoremove -y \
+    && apt-get update && apt-get install -y --no-install-recommends python3 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user workspace
 RUN mkdir -p /home/node/.openclaw /home/node/workspace \

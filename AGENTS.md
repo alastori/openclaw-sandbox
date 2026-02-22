@@ -7,7 +7,7 @@ Note: `CLAUDE.md` in the project root is a symlink to this file.
 ## Project Structure
 
 ```
-Dockerfile                      Container image (node:22-bookworm-slim + openclaw CLI)
+Dockerfile                      Container image (node:22-bookworm-slim + openclaw CLI + python3)
 docker-compose.yml              Orchestration with security constraints
 setup.sh                        One-command setup script
 config/openclaw.json.example    Template config (tracked, no secrets)

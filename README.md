@@ -41,7 +41,7 @@ macOS Host
         └── Workspace: ./workspace/ -> /home/node/workspace
 ```
 
-The LLM runs natively on the host for full Metal GPU acceleration. The Docker container only runs the OpenClaw gateway, capped at 2 GB RAM and 2 CPU cores.
+The LLM runs natively on the host for full Metal GPU acceleration. The Docker container runs the OpenClaw gateway with Node.js 22 and Python 3 available for agent tasks, capped at 2 GB RAM and 2 CPU cores.
 
 ## Common Commands
 
