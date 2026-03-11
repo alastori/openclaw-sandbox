@@ -95,6 +95,28 @@ if [ ! -f "$CONFIG_DIR/openclaw.json" ]; then
         exit 1
     fi
     cp "$CONFIG_DIR/openclaw.json.example" "$CONFIG_DIR/openclaw.json"
+
+    OPENCLAW_PORT="$OPENCLAW_PORT" python3 - "$CONFIG_DIR/openclaw.json" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+
+config_path = Path(sys.argv[1])
+data = json.loads(config_path.read_text())
+port = int(os.environ["OPENCLAW_PORT"])
+
+gateway = data.setdefault("gateway", {})
+control_ui = gateway.setdefault("controlUi", {})
+gateway["port"] = port
+control_ui["allowedOrigins"] = [
+    f"http://localhost:{port}",
+    f"http://127.0.0.1:{port}",
+]
+
+config_path.write_text(json.dumps(data, indent=2) + "\n")
+PY
+
     echo "  Created config from template."
 
     # Set gateway mode
