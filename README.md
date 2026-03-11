@@ -162,6 +162,8 @@ docker compose restart
 docker exec openclaw-sandbox openclaw pairing approve telegram YOUR_CODE
 ```
 
+A DM-only setup may still log a startup warning if `groupPolicy` is set to `"allowlist"` without any group allowlist entries. That is expected and harmless if you do not plan to use the bot in group chats.
+
 </details>
 
 ### Enable web access
