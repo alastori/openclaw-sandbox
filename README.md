@@ -140,6 +140,20 @@ The bootstrap script writes shell-safe values into `.env.secrets.local`. This ma
 Use `bash ./scripts/...` to run the helper scripts unless you've explicitly marked them executable in your local checkout.
 On macOS/Colima, don't deploy from `/tmp` or `/private/tmp`: Docker bind-mounts for the repo's `config/` directory can appear empty inside the container there. Use a clone under `/Users/...` instead.
 
+### Fresh Clone Recovery
+
+Validated on 2026-03-11 from a clean clone under `/Users/...`.
+
+```bash
+git clone https://github.com/alastori/openclaw-sandbox.git ~/GitHub/alastori/openclaw-sandbox-fresh
+cd ~/GitHub/alastori/openclaw-sandbox-fresh
+bash ./scripts/bootstrap-secrets-local.sh
+bash ./scripts/render-secrets-up.sh
+./oc health
+```
+
+If you already have a valid `.env.secrets.local` from another checkout, you can copy that file into the new clone instead of re-running the bootstrap step.
+
 ## Integrations
 
 ### Connect a Telegram bot
