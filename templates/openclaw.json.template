@@ -1,0 +1,126 @@
+{
+  "meta": {
+    "lastTouchedVersion": "2026.3.8"
+  },
+  "logging": {
+    "redactSensitive": "tools"
+  },
+  "auth": {
+    "profiles": {
+      "github-copilot:github": {
+        "provider": "github-copilot",
+        "mode": "token"
+      }
+    }
+  },
+  "models": {
+    "providers": {
+      "ollama": {
+        "baseUrl": "http://host.docker.internal:11434/v1",
+        "apiKey": "ollama",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "qwen2.5-coder:32b-instruct-q8_0",
+            "name": "Qwen 2.5 Coder 32B Q8",
+            "contextWindow": 32768
+          },
+          {
+            "id": "qwen3-coder:30b-a3b-q8_0",
+            "name": "Qwen3 Coder 30B A3B Q8",
+            "contextWindow": 65536
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "ollama/qwen2.5-coder:32b-instruct-q8_0",
+        "fallbacks": [
+          "github-copilot/gpt-4o"
+        ]
+      },
+      "models": {
+        "github-copilot/gpt-4o": {}
+      },
+      "contextTokens": 28000,
+      "compaction": {
+        "mode": "safeguard"
+      }
+    }
+  },
+  "tools": {
+    "web": {
+      "search": {
+        "enabled": true
+      },
+      "fetch": {
+        "enabled": true,
+        "maxChars": 30000
+      }
+    },
+    "loopDetection": {
+      "enabled": true
+    },
+    "elevated": {
+      "enabled": true,
+      "allowFrom": {
+        "controlui": [
+          "*"
+        ]
+      }
+    },
+    "exec": {
+      "timeoutSec": 120
+    }
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
+  },
+  "channels": {
+    "telegram": {
+      "name": "alastori_clawd_bot",
+      "enabled": true,
+      "dmPolicy": "pairing",
+      "botToken": "op://${OP_VAULT}/${OP_ITEM}/telegram_bot_token",
+      "groupPolicy": "allowlist",
+      "streaming": "off"
+    }
+  },
+  "discovery": {
+    "mdns": {
+      "mode": "off"
+    }
+  },
+  "gateway": {
+    "port": 18789,
+    "mode": "local",
+    "bind": "lan",
+    "controlUi": {
+      "enabled": true,
+      "allowedOrigins": [
+        "http://localhost:18789",
+        "http://127.0.0.1:18789"
+      ]
+    },
+    "auth": {
+      "mode": "token",
+      "token": "op://${OP_VAULT}/${OP_ITEM}/gateway_token"
+    }
+  },
+  "plugins": {
+    "entries": {
+      "telegram": {
+        "enabled": true
+      },
+      "copilot-proxy": {
+        "enabled": true
+      }
+    }
+  }
+}

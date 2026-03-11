@@ -13,7 +13,10 @@ services:
       - ./config:/home/node/.openclaw
       - ./workspace:/home/node/workspace
     environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OLLAMA_HOST=host.docker.internal
       - OLLAMA_PORT=11434
     # Security constraints

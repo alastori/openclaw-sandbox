@@ -79,6 +79,50 @@ cp config/openclaw.json.example config/openclaw.json
 
 After any config change, restart the gateway with `docker compose restart`.
 
+### Config Variants
+
+The repo has two tracked configuration entry points:
+
+- `config/openclaw.json.example` — minimal local-only example for manual setup
+- `templates/openclaw.json.template` — richer runtime template rendered by `./scripts/render-secrets-up.sh`
+
+Use the rendered template as the reference for the current day-to-day setup. It includes the generic secret-rendering flow, Telegram token placeholders, and GitHub Copilot fallback wiring.
+
+## 1Password Service Account Flow
+
+Use this when you want non-interactive startup without the 1Password desktop approval prompts.
+
+1. In 1Password, create a shared vault for OpenClaw secrets.
+2. Create an item named `OpenClaw Sandbox` with fields:
+   - `anthropic_api_key`
+   - `gemini_api_key`
+   - `openai_api_key`
+   - `gateway_token`
+   - `telegram_bot_token`
+3. Create a 1Password service account with read access to that vault only.
+4. Copy `.env.secrets.local.example` to `.env.secrets.local` and paste the service account token.
+5. Adjust `OP_VAULT` or `OP_ITEM` in `.env.secrets.local` if your names differ from the defaults in `.env.secrets.example`.
+6. Run:
+
+```bash
+./scripts/render-secrets-up.sh
+```
+
+What this does:
+
+- uses `op inject` to render `config/openclaw.json` from `templates/openclaw.json.template`
+- resolves provider API keys into `.runtime/openclaw.env`
+- starts the container with `docker compose --env-file .runtime/openclaw.env up -d`
+
+Today the renderer is backed by 1Password service-account references (`op://...`), but the filenames are backend-neutral so the renderer can be replaced later without renaming the workflow.
+
+Files involved:
+
+- `.env.secrets.example` — tracked secret-reference map
+- `.env.secrets.local` — untracked local bootstrap token
+- `templates/openclaw.json.template` — tracked config template with 1Password secret references
+- `.runtime/openclaw.env` — generated runtime env file, untracked
+
 ## Integrations
 
 ### Connect a Telegram bot
@@ -106,7 +150,12 @@ docker exec openclaw-sandbox openclaw pairing approve telegram YOUR_CODE
 
 ### Enable web access
 
-Web fetching (`web_fetch`) is enabled by default. The native `web_search` tool is **disabled** because it requires a Brave API key. Instead, web search is provided by the DuckDuckGo skill, which uses `web_fetch` to query DuckDuckGo Lite -- no API key needed.
+Web fetching (`web_fetch`) is enabled by default. There are currently two tracked variants:
+
+- `config/openclaw.json.example` disables native `web_search`
+- `templates/openclaw.json.template` enables native `web_search`
+
+The DuckDuckGo skill can still coexist with native web search and remains useful when you want explicit DDG-style results.
 
 <details>
 <summary>Manual config</summary>
@@ -167,6 +216,16 @@ Edit `config/openclaw.json`, update the model ID under `models.providers.ollama.
 
 > **Tip:** Also set `agents.defaults.contextTokens` to match your model's context window (minus ~15K headroom for system prompt and tool definitions). For example, a 65K context model should use `"contextTokens": 50000`.
 
+### Ollama Concurrency
+
+OpenClaw does not expose an Ollama provider concurrency setting in config. Concurrency is controlled by the Ollama server on the host:
+
+```bash
+OLLAMA_NUM_PARALLEL=1
+```
+
+For a single-user setup this default is usually fine. If you increase it, do it in the Ollama host service configuration, not in `openclaw.json`.
+
 ## Recommended Models
 
 Tested on Mac Studio with 96 GB unified memory:
@@ -222,6 +281,15 @@ docker exec openclaw-sandbox openclaw health    # Check health
 docker compose logs --tail 20                   # Check for errors
 docker compose restart                          # Restart
 ```
+</details>
+
+<details>
+<summary>Model context or concurrency confusion</summary>
+
+Two common mistakes:
+
+- Don't set `contextTokens` to the model's full advertised context. Leave headroom for the system prompt, tools, and workspace context; `50000` is the practical setting for a 65K model here.
+- Don't look for `models.providers.ollama.maxConcurrent` in OpenClaw config. Parallelism is an Ollama host setting via `OLLAMA_NUM_PARALLEL`.
 </details>
 
 <details>
