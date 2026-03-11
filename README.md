@@ -176,6 +176,9 @@ OPENCLAW_PORT=18790
 ```
 
 This repo does not support multiple independent users from a single checkout because `config/` and `workspace/` are shared within one repo directory.
+Validated on 2026-03-11 with a second checkout on port `18790`: the first turn in a brand-new container used the default provider `anthropic/claude-sonnet-4-6`.
+For routine per-instance operations, prefer `./oc ...` over raw `docker compose ...`; the wrapper loads `.env.instance.local` automatically.
+If two parallel instances share the same Telegram bot token, only one should poll Telegram at a time. For smoke tests or temporary side-by-side instances, disable Telegram in the secondary instance or give it a different bot token.
 
 ### Fresh Clone Recovery
 
@@ -228,6 +231,7 @@ docker compose exec -T openclaw-gateway openclaw pairing approve telegram YOUR_C
 ```
 
 A DM-only setup may still log a startup warning if `groupPolicy` is set to `"allowlist"` without any group allowlist entries. That is expected and harmless if you do not plan to use the bot in group chats.
+Do not run two instances with the same Telegram bot token enabled unless you explicitly want them competing for updates.
 
 </details>
 

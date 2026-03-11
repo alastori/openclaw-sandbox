@@ -51,6 +51,9 @@ workspace/                      Agent workspace (gitignored)
 - On macOS/Colima, don't run this repo from `/tmp` or `/private/tmp`; Docker can mount `config/` as effectively empty there. Use a checkout under `/Users/...`
 - The default 1Password vault name is `AI-Agents`; override `OP_VAULT` if you use a different vault
 - Parallel instances are supported via separate checkouts, each with its own `.env.instance.local`, `config/`, and `workspace/`
+- Validated on 2026-03-11: a second checkout on port `18790` started cleanly and the first fresh turn used `anthropic/claude-sonnet-4-6` by default
+- Prefer `./oc ...` over raw `docker compose ...` for per-instance operations because the wrapper loads `.env.instance.local` automatically
+- Parallel instances must not share the same Telegram bot token with polling enabled unless you deliberately want them competing for the same updates
 
 ## Security Notes
 
