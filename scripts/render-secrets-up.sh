@@ -5,6 +5,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+case "$ROOT_DIR" in
+  /tmp/*|/private/tmp/*)
+    echo "error: deploying from $ROOT_DIR is not supported on macOS/Colima; bind-mounted config appears empty inside Docker from /tmp. Clone under /Users/... instead." >&2
+    exit 1
+    ;;
+esac
+
 if ! command -v op >/dev/null 2>&1; then
   echo "error: 1Password CLI (op) is not installed" >&2
   exit 1

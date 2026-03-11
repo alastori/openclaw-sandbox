@@ -138,6 +138,7 @@ Files involved:
 
 The bootstrap script writes shell-safe values into `.env.secrets.local`. This matters for names with spaces, such as `OP_ITEM=OpenClaw Sandbox`.
 Use `bash ./scripts/...` to run the helper scripts unless you've explicitly marked them executable in your local checkout.
+On macOS/Colima, don't deploy from `/tmp` or `/private/tmp`: Docker bind-mounts for the repo's `config/` directory can appear empty inside the container there. Use a clone under `/Users/...` instead.
 
 ## Integrations
 
