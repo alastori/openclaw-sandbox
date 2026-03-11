@@ -29,11 +29,27 @@ if ! op whoami >/dev/null 2>&1; then
   exit 1
 fi
 
-op inject -i .env.secrets.example -o .runtime/openclaw.env
-chmod 600 .runtime/openclaw.env
+runtime_tmp_dir="$(mktemp -d .runtime/openclaw.XXXXXX)"
+config_tmp_dir="$(mktemp -d config/openclaw.XXXXXX)"
+runtime_env_tmp="$runtime_tmp_dir/openclaw.env"
+config_tmp="$config_tmp_dir/openclaw.json"
 
-op inject -i templates/openclaw.json.template -o config/openclaw.json
-chmod 600 config/openclaw.json
+op inject -i .env.secrets.example -o "$runtime_env_tmp"
+chmod 600 "$runtime_env_tmp"
+
+op inject -i templates/openclaw.json.template -o "$config_tmp"
+chmod 600 "$config_tmp"
+
+if [[ -f config/openclaw.json ]]; then
+  backup_path="config/openclaw.json.bak.$(date +%Y%m%d-%H%M%S)"
+  cp config/openclaw.json "$backup_path"
+  chmod 600 "$backup_path"
+  echo "Backed up existing config/openclaw.json to $backup_path"
+fi
+
+mv "$runtime_env_tmp" .runtime/openclaw.env
+mv "$config_tmp" config/openclaw.json
+rmdir "$runtime_tmp_dir" "$config_tmp_dir"
 
 docker compose --env-file .runtime/openclaw.env up -d
 

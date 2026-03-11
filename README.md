@@ -99,29 +99,45 @@ Use this when you want non-interactive startup without the 1Password desktop app
    - `openai_api_key`
    - `gateway_token`
    - `telegram_bot_token`
-3. Create a 1Password service account with read access to that vault only.
-4. Copy `.env.secrets.local.example` to `.env.secrets.local` and paste the service account token.
-5. Adjust `OP_VAULT` or `OP_ITEM` in `.env.secrets.local` if your names differ from the defaults in `.env.secrets.example`.
-6. Run:
+3. Run the bootstrap script to create a read-only service account token and write `.env.secrets.local`:
 
 ```bash
-./scripts/render-secrets-up.sh
+bash ./scripts/bootstrap-secrets-local.sh
+```
+
+If your names differ from the defaults, override them:
+
+```bash
+OP_VAULT='My Vault' OP_ITEM='My Item' bash ./scripts/bootstrap-secrets-local.sh
+```
+
+4. Run:
+
+```bash
+bash ./scripts/render-secrets-up.sh
 ```
 
 What this does:
 
 - uses `op inject` to render `config/openclaw.json` from `templates/openclaw.json.template`
 - resolves provider API keys into `.runtime/openclaw.env`
+- backs up any existing `config/openclaw.json` to `config/openclaw.json.bak.YYYYMMDD-HHMMSS`
 - starts the container with `docker compose --env-file .runtime/openclaw.env up -d`
 
 Today the renderer is backed by 1Password service-account references (`op://...`), but the filenames are backend-neutral so the renderer can be replaced later without renaming the workflow.
+The renderer also backs up the previous `config/openclaw.json` and renders via temp directories so `op inject` does not prompt on overwrite.
 
 Files involved:
 
 - `.env.secrets.example` — tracked secret-reference map
+- `.env.secrets.local.example` — example local bootstrap file
 - `.env.secrets.local` — untracked local bootstrap token
+- `scripts/bootstrap-secrets-local.sh` — creates the service account token and local bootstrap file
 - `templates/openclaw.json.template` — tracked config template with 1Password secret references
 - `.runtime/openclaw.env` — generated runtime env file, untracked
+
+The bootstrap script writes shell-safe values into `.env.secrets.local`. This matters for names with spaces, such as `OP_ITEM=OpenClaw Sandbox`.
+Use `bash ./scripts/...` to run the helper scripts unless you've explicitly marked them executable in your local checkout.
 
 ## Integrations
 
