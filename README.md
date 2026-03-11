@@ -23,7 +23,7 @@ The setup script verifies prerequisites, tests networking, builds the Docker ima
 ./oc dashboard    # prints the URL with auth token
 ```
 
-Or go directly to `http://127.0.0.1:18789/` and paste your gateway token from `config/openclaw.json`.
+Or go directly to `http://127.0.0.1:$OPENCLAW_PORT/` and paste your gateway token from `config/openclaw.json` (`18789` by default).
 
 ## Prerequisites
 
@@ -51,7 +51,7 @@ The LLM runs natively on the host for full Metal GPU acceleration. The Docker co
 
 ## Common Commands
 
-The `./oc` wrapper script is a shortcut for `docker exec openclaw-sandbox openclaw`:
+The `./oc` wrapper script is a checkout-scoped shortcut for `docker compose exec openclaw-gateway openclaw`:
 
 ```bash
 ./oc health                       # Health check
@@ -67,6 +67,15 @@ docker compose up -d              # Start
 docker compose down               # Stop
 docker compose restart            # Restart after config changes
 docker compose logs -f            # Watch logs
+```
+
+If this checkout uses `.env.instance.local`, load it before raw `docker compose` commands:
+
+```bash
+set -a
+source .env.instance.local
+set +a
+docker compose ps
 ```
 
 ## Configuration
@@ -87,12 +96,14 @@ The repo has two tracked configuration entry points:
 - `templates/openclaw.json.template` — richer runtime template rendered by `./scripts/render-secrets-up.sh`
 
 Use the rendered template as the reference for the current day-to-day setup. It includes the generic secret-rendering flow, Telegram token placeholders, and GitHub Copilot fallback wiring.
+The current portable default policy is hosted-first: `anthropic/claude-sonnet-4-6` as primary, `openai/gpt-5.4` as automatic fallback, with local Ollama models kept as optional manual choices.
+Pinned hosted defaults live in `models.policy.json`, and `bash ./scripts/render-secrets-up.sh` applies that policy to the rendered config before starting the container.
 
 ## 1Password Service Account Flow
 
 Use this when you want non-interactive startup without the 1Password desktop approval prompts.
 
-1. In 1Password, create a shared vault for OpenClaw secrets.
+1. In 1Password, create a shared vault for OpenClaw secrets. The repo defaults now assume the vault is named `AI-Agents`.
 2. Create an item named `OpenClaw Sandbox` with fields:
    - `anthropic_api_key`
    - `gemini_api_key`
@@ -129,16 +140,42 @@ The renderer also backs up the previous `config/openclaw.json` and renders via t
 
 Files involved:
 
+- `.env.instance.local.example` — example per-checkout port/project settings
 - `.env.secrets.example` — tracked secret-reference map
 - `.env.secrets.local.example` — example local bootstrap file
 - `.env.secrets.local` — untracked local bootstrap token
 - `scripts/bootstrap-secrets-local.sh` — creates the service account token and local bootstrap file
+- `models.policy.json` — pinned hosted-model policy for portable primary/fallback choices
+- `scripts/apply-model-policy.py` — applies the pinned model policy to the rendered config
 - `templates/openclaw.json.template` — tracked config template with 1Password secret references
 - `.runtime/openclaw.env` — generated runtime env file, untracked
 
 The bootstrap script writes shell-safe values into `.env.secrets.local`. This matters for names with spaces, such as `OP_ITEM=OpenClaw Sandbox`.
 Use `bash ./scripts/...` to run the helper scripts unless you've explicitly marked them executable in your local checkout.
 On macOS/Colima, don't deploy from `/tmp` or `/private/tmp`: Docker bind-mounts for the repo's `config/` directory can appear empty inside the container there. Use a clone under `/Users/...` instead.
+
+### Parallel Instances
+
+Run one checkout per user or persona. Each checkout should have:
+
+- its own `config/` and `workspace/`
+- a unique `COMPOSE_PROJECT_NAME`
+- a unique `OPENCLAW_PORT`
+
+Example:
+
+```bash
+cp .env.instance.local.example .env.instance.local
+```
+
+Then edit `.env.instance.local`:
+
+```bash
+COMPOSE_PROJECT_NAME=openclaw-wife
+OPENCLAW_PORT=18790
+```
+
+This repo does not support multiple independent users from a single checkout because `config/` and `workspace/` are shared within one repo directory.
 
 ### Fresh Clone Recovery
 
@@ -153,6 +190,19 @@ bash ./scripts/render-secrets-up.sh
 ```
 
 If you already have a valid `.env.secrets.local` from another checkout, you can copy that file into the new clone instead of re-running the bootstrap step.
+
+### Periodic Model Audit
+
+Use this when keys rotate, providers change, or you move the repo to another host:
+
+```bash
+bash ./scripts/check-models.sh
+```
+
+The script reads the rendered config plus `.runtime/openclaw.env`, probes the configured models directly against their providers, and reports `required` versus `optional` models. It also compares `models.policy.json` against the current provider catalogs and reports whether newer compatible hosted models are available.
+Use `bash ./scripts/check-models.sh --adopt` to opt in to newer provider models. That only updates `models.policy.json` when the newer model is confirmed by both the provider catalog and the local OpenClaw catalog; rerun `bash ./scripts/render-secrets-up.sh` afterward to apply the new pins.
+OAuth/profile-backed providers such as `github-copilot` currently report as `not_checked` because they are not driven by direct API-key requests from this script.
+If a live turn reports an Anthropic "rate limit" failover unexpectedly, check Anthropic billing/credits too. In practice, insufficient Anthropic credits can surface through OpenClaw as a generic rate-limit-style failover message even when the provider is returning a different error class.
 
 ## Integrations
 
@@ -174,7 +224,7 @@ docker compose restart
 3. Message your bot. It will reply with a pairing code. Approve it:
 
 ```bash
-docker exec openclaw-sandbox openclaw pairing approve telegram YOUR_CODE
+docker compose exec -T openclaw-gateway openclaw pairing approve telegram YOUR_CODE
 ```
 
 A DM-only setup may still log a startup warning if `groupPolicy` is set to `"allowlist"` without any group allowlist entries. That is expected and harmless if you do not plan to use the bot in group chats.
@@ -214,9 +264,9 @@ The DuckDuckGo search skill should be installed during setup. If it's missing:
 <summary>Install DuckDuckGo skill</summary>
 
 ```bash
-docker exec openclaw-sandbox npx clawhub install ddg-web-search --no-input
-docker exec openclaw-sandbox mkdir -p /home/node/.openclaw/workspace/skills
-docker exec openclaw-sandbox cp -r /home/node/skills/ddg-web-search \
+docker compose exec -T openclaw-gateway npx clawhub install ddg-web-search --no-input
+docker compose exec -T openclaw-gateway mkdir -p /home/node/.openclaw/workspace/skills
+docker compose exec -T openclaw-gateway cp -r /home/node/skills/ddg-web-search \
   /home/node/.openclaw/workspace/skills/
 docker compose restart
 ```
@@ -310,7 +360,7 @@ Update `config/openclaw.json` to use the new model name and restart.
 <summary>Agent not responding</summary>
 
 ```bash
-docker exec openclaw-sandbox openclaw health    # Check health
+./oc health                                     # Check health
 docker compose logs --tail 20                   # Check for errors
 docker compose restart                          # Restart
 ```

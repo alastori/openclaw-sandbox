@@ -3,12 +3,14 @@ config/*
 !config/openclaw.json.example
 workspace/
 .runtime/
+.env.instance.local
 .env.secrets.local
 
 # Secrets
 .env
 .env.*
 !.env.secrets.example
+!.env.instance.local.example
 !.env.secrets.local.example
 *.key
 *.pem

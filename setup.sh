@@ -5,6 +5,17 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG_DIR="$SCRIPT_DIR/config"
 WORKSPACE_DIR="$SCRIPT_DIR/workspace"
 
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/scripts/load-local-env.sh"
+
+compose_exec() {
+    if [[ -t 0 && -t 1 ]]; then
+        docker compose exec openclaw-gateway "$@"
+    else
+        docker compose exec -T openclaw-gateway "$@"
+    fi
+}
+
 echo "=== OpenClaw Sandbox Setup ==="
 echo ""
 
@@ -111,7 +122,7 @@ echo "  Waiting for startup..."
 sleep 8
 
 # Health check
-if docker exec openclaw-sandbox openclaw health 2>/dev/null; then
+if compose_exec openclaw health 2>/dev/null; then
     echo ""
 else
     echo "  Gateway starting up... check 'docker compose logs -f' for details."
@@ -122,9 +133,9 @@ fi
 # -------------------------------------------------------------------
 echo ""
 echo "[7/7] Installing DuckDuckGo search skill..."
-if docker exec openclaw-sandbox npx clawhub install ddg-web-search --no-input 2>/dev/null; then
-    docker exec openclaw-sandbox mkdir -p /home/node/.openclaw/workspace/skills
-    docker exec openclaw-sandbox cp -r /home/node/skills/ddg-web-search \
+if compose_exec npx clawhub install ddg-web-search --no-input 2>/dev/null; then
+    compose_exec mkdir -p /home/node/.openclaw/workspace/skills
+    compose_exec cp -r /home/node/skills/ddg-web-search \
         /home/node/.openclaw/workspace/skills/ 2>/dev/null
     echo "  DDG search skill installed."
     echo "  Restarting gateway to pick up new skill..."
@@ -132,13 +143,13 @@ if docker exec openclaw-sandbox npx clawhub install ddg-web-search --no-input 2>
     sleep 5
 else
     echo "  WARNING: Could not install DDG search skill."
-    echo "  Install manually: docker exec openclaw-sandbox npx clawhub install ddg-web-search --no-input"
+    echo "  Install manually: docker compose exec -T openclaw-gateway npx clawhub install ddg-web-search --no-input"
 fi
 
 echo ""
 echo "=== Setup Complete ==="
 echo ""
-echo "  Web UI:     http://127.0.0.1:18789"
+echo "  Web UI:     http://127.0.0.1:$OPENCLAW_PORT"
 echo "  Dashboard:  ./oc dashboard        # prints URL with auth token"
 echo "  Workspace:  $WORKSPACE_DIR"
 echo "  Config:     $CONFIG_DIR/openclaw.json"

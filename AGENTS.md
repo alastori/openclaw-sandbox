@@ -10,13 +10,17 @@ Note: `CLAUDE.md` in the project root is a symlink to this file.
 Dockerfile                      Container image (node:22-bookworm-slim + openclaw CLI + python3)
 docker-compose.yml              Orchestration with security constraints
 setup.sh                        One-command setup script
-oc                              Host-side shortcut: ./oc <cmd> = docker exec ... openclaw <cmd>
+oc                              Host-side shortcut: ./oc <cmd> = docker compose exec ... openclaw <cmd>
+.env.instance.local             Local per-checkout port/project config (gitignored)
+.env.instance.local.example     Example per-checkout port/project config
 config/openclaw.json.example    Template config (tracked, no secrets)
 config/openclaw.json            Live config (gitignored, contains secrets)
 .env.secrets.example            Secret reference map for the current backend
 .env.secrets.local              Local bootstrap token/config (gitignored)
+models.policy.json             Pinned hosted-model policy for portable defaults
 templates/openclaw.json.template Runtime config template rendered into config/openclaw.json
 scripts/render-secrets-up.sh    Render secrets + start the container
+scripts/check-models.sh         Probe configured models and audit policy against provider catalogs
 workspace/                      Agent workspace (gitignored)
 ```
 
@@ -34,14 +38,19 @@ workspace/                      Agent workspace (gitignored)
 - Container is limited to 2 GB memory and 2 CPU cores; the model runs on the host
 - Config format is JSON at `config/openclaw.json`
 - There are two tracked config entry points: `config/openclaw.json.example` is the minimal local-only example; `templates/openclaw.json.template` is the richer runtime template rendered by `scripts/render-secrets-up.sh`
-- Gateway port is bound to localhost only (`127.0.0.1:18789`) via docker-compose
+- Gateway port is bound to localhost only (`127.0.0.1:${OPENCLAW_PORT}`) via docker-compose, default `18789`
 - `gateway.bind: lan` is set so the gateway listens on `0.0.0.0` inside the container (required for Docker port forwarding and the Control UI)
-- Control UI is enabled at `http://127.0.0.1:18789/` via `gateway.controlUi.enabled: true`
+- Control UI is enabled at `http://127.0.0.1:${OPENCLAW_PORT}/` via `gateway.controlUi.enabled: true`
 - `config/openclaw.json.example` disables native `web_search`; the rendered runtime template currently enables OpenClaw web search and can still coexist with the DDG skill
+- The portable runtime template is hosted-first: `anthropic/claude-sonnet-4-6` primary, `openai/gpt-5.4` fallback, local Ollama models optional
+- Hosted defaults are pinned in `models.policy.json`; `bash ./scripts/check-models.sh --adopt` updates that policy only after an explicit opt-in
+- If Anthropic appears to "rate limit" unexpectedly during live turns, also check billing/credits; OpenClaw can surface insufficient-credit failures as generic rate-limit-style failovers
 - `agents.defaults.contextTokens` is set to 50000 to stay within the model's 65K context window (leaving ~15K headroom for system prompt and tool definitions)
 - Ollama concurrency is controlled on the host with `OLLAMA_NUM_PARALLEL`; there is no OpenClaw config field like `models.providers.ollama.maxConcurrent`
 - Telegram may warn at startup when `groupPolicy` is `"allowlist"` and no group allowlist is configured; this is expected for DM-only use and group messages will simply be dropped unless explicitly enabled later
 - On macOS/Colima, don't run this repo from `/tmp` or `/private/tmp`; Docker can mount `config/` as effectively empty there. Use a checkout under `/Users/...`
+- The default 1Password vault name is `AI-Agents`; override `OP_VAULT` if you use a different vault
+- Parallel instances are supported via separate checkouts, each with its own `.env.instance.local`, `config/`, and `workspace/`
 
 ## Security Notes
 

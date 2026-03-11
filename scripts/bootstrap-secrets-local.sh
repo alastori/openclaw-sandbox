@@ -5,6 +5,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+# shellcheck disable=SC1091
+source "$ROOT_DIR/scripts/load-local-env.sh"
+
 if ! command -v op >/dev/null 2>&1; then
   echo "error: 1Password CLI (op) is not installed" >&2
   exit 1
@@ -15,9 +18,9 @@ if ! op whoami >/dev/null 2>&1; then
   exit 1
 fi
 
-OP_VAULT="${OP_VAULT:-OpenClaw}"
+OP_VAULT="${OP_VAULT:-AI-Agents}"
 OP_ITEM="${OP_ITEM:-OpenClaw Sandbox}"
-SERVICE_ACCOUNT_NAME="${SERVICE_ACCOUNT_NAME:-openclaw-sandbox-$(hostname -s)}"
+SERVICE_ACCOUNT_NAME="${SERVICE_ACCOUNT_NAME:-${COMPOSE_PROJECT_NAME}-$(hostname -s)}"
 OUTPUT_FILE="${OUTPUT_FILE:-.env.secrets.local}"
 
 if [[ -f "$OUTPUT_FILE" ]]; then
@@ -49,4 +52,4 @@ unset token
 
 echo "Wrote $OUTPUT_FILE"
 echo "Service account: $SERVICE_ACCOUNT_NAME"
-echo "Next: ./scripts/render-secrets-up.sh"
+echo "Next: bash ./scripts/render-secrets-up.sh"

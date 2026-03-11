@@ -4,4 +4,14 @@
 #        ./oc models list
 #        ./oc skills list
 #        ./oc sessions
-exec docker exec openclaw-sandbox openclaw "$@"
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck disable=SC1091
+source "$ROOT_DIR/scripts/load-local-env.sh"
+
+if [[ -t 0 && -t 1 ]]; then
+  exec docker compose exec openclaw-gateway openclaw "$@"
+else
+  exec docker compose exec -T openclaw-gateway openclaw "$@"
+fi

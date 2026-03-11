@@ -5,6 +5,11 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+MODEL_POLICY_FILE="${MODEL_POLICY_FILE:-models.policy.json}"
+
+# shellcheck disable=SC1091
+source "$ROOT_DIR/scripts/load-local-env.sh"
+
 case "$ROOT_DIR" in
   /tmp/*|/private/tmp/*)
     echo "error: deploying from $ROOT_DIR is not supported on macOS/Colima; bind-mounted config appears empty inside Docker from /tmp. Clone under /Users/... instead." >&2
@@ -17,16 +22,14 @@ if ! command -v op >/dev/null 2>&1; then
   exit 1
 fi
 
-if [[ -f .env.secrets.local ]]; then
-  set -a
-  # shellcheck disable=SC1091
-  source .env.secrets.local
-  set +a
-fi
-
 : "${OP_SERVICE_ACCOUNT_TOKEN:?Set OP_SERVICE_ACCOUNT_TOKEN or create .env.secrets.local}"
 : "${OP_VAULT:?Set OP_VAULT in the environment or .env.secrets.local}"
 : "${OP_ITEM:?Set OP_ITEM in the environment or .env.secrets.local}"
+
+if [[ ! -f "$MODEL_POLICY_FILE" ]]; then
+  echo "error: $MODEL_POLICY_FILE not found" >&2
+  exit 1
+fi
 
 mkdir -p .runtime config
 chmod 700 .runtime
@@ -47,6 +50,8 @@ chmod 600 "$runtime_env_tmp"
 op inject -i templates/openclaw.json.template -o "$config_tmp"
 chmod 600 "$config_tmp"
 
+python3 scripts/apply-model-policy.py "$config_tmp" "$MODEL_POLICY_FILE"
+
 if [[ -f config/openclaw.json ]]; then
   backup_path="config/openclaw.json.bak.$(date +%Y%m%d-%H%M%S)"
   cp config/openclaw.json "$backup_path"
@@ -60,4 +65,4 @@ rmdir "$runtime_tmp_dir" "$config_tmp_dir"
 
 docker compose --env-file .runtime/openclaw.env up -d
 
-echo "Rendered config/openclaw.json and started openclaw-sandbox."
+echo "Rendered config/openclaw.json and started the OpenClaw gateway on port $OPENCLAW_PORT."

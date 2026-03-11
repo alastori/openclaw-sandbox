@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "defaults": {
+    "primary": {
+      "provider": "anthropic",
+      "pinned": "anthropic/claude-sonnet-4-6",
+      "alias": "Sonnet 4.6",
+      "familyRegex": "^claude-sonnet-(\\d+)(?:-(\\d{1,2}))?$",
+      "adopt": "notify"
+    },
+    "fallbacks": [
+      {
+        "provider": "openai",
+        "pinned": "openai/gpt-5.4",
+        "alias": "GPT-5.4",
+        "familyRegex": "^gpt-5(?:\\.(\\d+))?$",
+        "adopt": "notify"
+      }
+    ]
+  }
+}
