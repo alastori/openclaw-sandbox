@@ -63,11 +63,13 @@ The `./oc` wrapper script is a checkout-scoped shortcut for `docker compose exec
 Docker Compose commands:
 
 ```bash
-docker compose up -d              # Start
+docker compose --env-file .runtime/openclaw.env up -d   # Start (with API keys)
 docker compose down               # Stop
 docker compose restart            # Restart after config changes
 docker compose logs -f            # Watch logs
 ```
+
+**Important:** If secrets were rendered via `scripts/render-secrets-up.sh`, always pass `--env-file .runtime/openclaw.env` to `docker compose up`. Without it, the container starts with empty API keys and all hosted providers will fail. The `./oc` wrapper loads `.env.instance.local` automatically but does **not** load `.runtime/openclaw.env`.
 
 If this checkout uses `.env.instance.local`, load it before raw `docker compose` commands:
 
@@ -413,6 +415,14 @@ If the container can't reach Ollama, verify `host.docker.internal` resolves:
 docker run --rm --add-host=host.docker.internal:host-gateway alpine \
   sh -c "wget -qO- http://host.docker.internal:11434/v1/models"
 ```
+</details>
+
+<details>
+<summary>Built-in cron jobs not executing</summary>
+
+OpenClaw's built-in `cron run` executor is broken as of 2026.3.8–2026.3.11: manual runs return `enqueued: true` but the internal dispatch loop never starts the agent turn (no transcript, no run record, no log entry).
+
+Workaround: use a host-side scheduler (launchd on macOS, systemd timer on Linux) running `scripts/cron-news-brief.sh`, which calls `./oc agent` and delivers the output to Telegram via the Bot API.
 </details>
 
 ## License
