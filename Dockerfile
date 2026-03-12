@@ -20,12 +20,16 @@ RUN apt-get purge -y build-essential && apt-get autoremove -y \
 
 # Create non-root user workspace
 RUN mkdir -p /home/node/.openclaw /home/node/workspace \
+    && chmod 700 /home/node/.openclaw /home/node/workspace \
     && chown -R node:node /home/node
 
 USER node
 WORKDIR /home/node
 
 EXPOSE 18789
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD curl -sf http://localhost:18789/ -o /dev/null || exit 1
 
 # Start the gateway in foreground mode
 CMD ["openclaw", "gateway", "run"]

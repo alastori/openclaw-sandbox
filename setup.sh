@@ -74,6 +74,7 @@ fi
 echo ""
 echo "[3/7] Creating config and workspace directories..."
 mkdir -p "$CONFIG_DIR" "$WORKSPACE_DIR"
+chmod 700 "$CONFIG_DIR" "$WORKSPACE_DIR"
 
 # -------------------------------------------------------------------
 # 4. Build the image

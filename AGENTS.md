@@ -41,6 +41,8 @@ workspace/                      Agent workspace (gitignored)
 - Gateway port is bound to localhost only (`127.0.0.1:${OPENCLAW_PORT}`) via docker-compose, default `18789`
 - `gateway.bind: lan` is set so the gateway listens on `0.0.0.0` inside the container (required for Docker port forwarding and the Control UI)
 - Control UI is enabled at `http://127.0.0.1:${OPENCLAW_PORT}/` via `gateway.controlUi.enabled: true`
+- `gateway.auth.rateLimit` is enabled in both tracked config entry points (`maxAttempts: 10`, `windowMs: 60000`, `lockoutMs: 300000`) because the gateway binds on `lan` inside Docker
+- `docker-compose.yml` already uses `restart: unless-stopped`; for a future headless Linux deployment, persistence should be managed by enabling the Docker engine at boot via `systemd`, not by creating a separate host service for OpenClaw
 - `config/openclaw.json.example` disables native `web_search`; the rendered runtime template currently enables OpenClaw web search and can still coexist with the DDG skill
 - The portable runtime template is hosted-first: `anthropic/claude-sonnet-4-6` primary, `openai/gpt-5.4` fallback, local Ollama models optional
 - Hosted defaults are pinned in `models.policy.json`; `bash ./scripts/check-models.sh --adopt` updates that policy only after an explicit opt-in
@@ -53,14 +55,19 @@ workspace/                      Agent workspace (gitignored)
 - Parallel instances are supported via separate checkouts, each with its own `.env.instance.local`, `config/`, and `workspace/`
 - `setup.sh` now rewrites the copied `config/openclaw.json.example` to the checkout's `OPENCLAW_PORT`, so manual bootstrap works on non-default ports too
 - Validated on 2026-03-11: a second checkout on port `18790` started cleanly and the first fresh turn used `anthropic/claude-sonnet-4-6` by default
+- Also validated on 2026-03-11 in the main checkout after soft-deleting the runtime `config/` contents to `~/Desktop/_TRASH/...`: rerendering from secrets rebuilt a clean session store and the first successful live turn again used `anthropic/claude-sonnet-4-6`
+- The very first probe right after a rebuild can hit a transient `gateway closed (1006 abnormal closure)` if the gateway restarts once during boot; rerun after `./oc health` is clean before treating it as a real failure
+- Validated on 2026-03-11 after hardening: `openclaw security audit --deep` returned `0 critical`, `0 warn`, and only one expected info finding for Telegram DM-only group handling
 - Prefer `./oc ...` over raw `docker compose ...` for per-instance operations because the wrapper loads `.env.instance.local` automatically
+- For Telegram pairing approval, some shell runners do not preserve `cd` between commands; use the absolute wrapper path (`~/GitHub/alastori/openclaw-sandbox/oc ...`) or `cd ... && ...` in a single shell invocation
 - Parallel instances must not share the same Telegram bot token with polling enabled unless you deliberately want them competing for the same updates
 
 ## Security Notes
 
 - `config/openclaw.json` contains bot tokens and gateway auth tokens -- never commit it
 - The `config/` directory also contains credentials, session data, and device identity files
+- `scripts/render-secrets-up.sh` and `setup.sh` both force `config/` and `workspace/` to mode `700`; keep those directories private on the host
 - `.gitignore` uses `config/*` with a negation for `!config/openclaw.json.example` -- everything else under `config/` is excluded
 - Never force-add files from `config/`
 - No PII or credentials in any tracked file
-- Elevated tools (shell exec, file write) are restricted to the Control UI via `tools.elevated.allowFrom`. Other channels (Telegram, etc.) cannot use elevated tools unless explicitly added to the allowlist — see `config/openclaw.json.example` for the format
+- Elevated tools are disabled by default in the tracked config sources. Re-enable them only if you have a narrow provider-specific allowlist; do not restore `controlui: ["*"]`

@@ -78,6 +78,8 @@ set +a
 docker compose ps
 ```
 
+For future headless-server deployments: this repo already sets `restart: unless-stopped` in [docker-compose.yml](/Users/alastori/GitHub/alastori/openclaw-sandbox/docker-compose.yml), so the container is meant to come back automatically when the Docker engine comes back. On a Linux server, the missing persistence layer is usually Docker itself at boot, managed by `systemd` (`docker.service` / `containerd.service`), not a separate systemd unit for OpenClaw. If you later deploy this on a headless box, the practical checklist is: enable Docker at boot, keep using `docker compose up -d`, preserve `config/`, `workspace/`, and `.env.secrets.local`, and only expose the port beyond loopback deliberately behind your preferred network boundary.
+
 ## Configuration
 
 The setup script creates `config/openclaw.json` from the included example template. You can also copy it manually:
@@ -195,6 +197,11 @@ bash ./scripts/render-secrets-up.sh
 
 If you already have a valid `.env.secrets.local` from another checkout, you can copy that file into the new clone instead of re-running the bootstrap step.
 
+Validated on 2026-03-11 from the main checkout after a config reset:
+- soft-deleting the runtime `config/` contents to `~/Desktop/_TRASH/...` and re-running `bash ./scripts/render-secrets-up.sh` is a safe way to force a truly fresh local state
+- the first probe immediately after container start can fail with a transient gateway websocket close if the gateway restarts once during boot; rerun the probe after `./oc health` is clean
+- after that rebuild, the first successful live turn in the main checkout again used the default provider `anthropic/claude-sonnet-4-6`
+
 ### Periodic Model Audit
 
 Use this when keys rotate, providers change, or you move the repo to another host:
@@ -229,6 +236,18 @@ docker compose restart
 
 ```bash
 docker compose exec -T openclaw-gateway openclaw pairing approve telegram YOUR_CODE
+```
+
+If your shell runner does not preserve `cd` between commands, use the absolute wrapper path instead:
+
+```bash
+~/GitHub/alastori/openclaw-sandbox/oc pairing approve telegram YOUR_CODE
+```
+
+or run the `cd` and approval in the same command:
+
+```bash
+cd ~/GitHub/alastori/openclaw-sandbox && docker compose exec -T openclaw-gateway openclaw pairing approve telegram YOUR_CODE
 ```
 
 A DM-only setup may still log a startup warning if `groupPolicy` is set to `"allowlist"` without any group allowlist entries. That is expected and harmless if you do not plan to use the bot in group chats.
@@ -335,6 +354,11 @@ The Docker container enforces:
 - **Volume isolation** -- `./workspace/` (agent working directory) and `./config/` (OpenClaw home) are mounted; `/tmp` is a size-limited tmpfs
 - **No host filesystem access** -- no home directory, documents, or credentials
 - **Localhost-only port binding** -- gateway accessible only from the host
+- **Gateway auth rate limiting** -- `gateway.auth.rateLimit` defaults to `10` attempts per `60s`, with a `5m` lockout
+- **Private state directories** -- `setup.sh` and `scripts/render-secrets-up.sh` force `config/` and `workspace/` to mode `700`
+- **Elevated tools disabled by default** -- shell/write escalation is off unless you explicitly opt back in with a narrow allowlist
+
+Validated on 2026-03-11: `openclaw security audit --deep` returned `0 critical`, `0 warn`, and only one expected info finding for Telegram DM-only group handling.
 
 ## Troubleshooting
 

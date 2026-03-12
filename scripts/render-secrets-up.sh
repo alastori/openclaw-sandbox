@@ -31,8 +31,9 @@ if [[ ! -f "$MODEL_POLICY_FILE" ]]; then
   exit 1
 fi
 
-mkdir -p .runtime config
+mkdir -p .runtime config workspace
 chmod 700 .runtime
+chmod 700 config workspace
 
 if ! op whoami >/dev/null 2>&1; then
   echo "error: 1Password CLI could not authenticate with the configured service account token" >&2
