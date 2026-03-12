@@ -78,7 +78,7 @@ set +a
 docker compose ps
 ```
 
-For future headless-server deployments: this repo already sets `restart: unless-stopped` in [docker-compose.yml](/Users/alastori/GitHub/alastori/openclaw-sandbox/docker-compose.yml), so the container is meant to come back automatically when the Docker engine comes back. On a Linux server, the missing persistence layer is usually Docker itself at boot, managed by `systemd` (`docker.service` / `containerd.service`), not a separate systemd unit for OpenClaw. If you later deploy this on a headless box, the practical checklist is: enable Docker at boot, keep using `docker compose up -d`, preserve `config/`, `workspace/`, and `.env.secrets.local`, and only expose the port beyond loopback deliberately behind your preferred network boundary.
+For future headless-server deployments: this repo already sets `restart: unless-stopped` in [docker-compose.yml](docker-compose.yml), so the container is meant to come back automatically when the Docker engine comes back. On a Linux server, the missing persistence layer is usually Docker itself at boot, managed by `systemd` (`docker.service` / `containerd.service`), not a separate systemd unit for OpenClaw. If you later deploy this on a headless box, the practical checklist is: enable Docker at boot, keep using `docker compose up -d`, preserve `config/`, `workspace/`, and `.env.secrets.local`, and only expose the port beyond loopback deliberately behind your preferred network boundary.
 
 ## Configuration
 
