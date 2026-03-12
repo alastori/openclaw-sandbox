@@ -21,6 +21,7 @@ models.policy.json             Pinned hosted-model policy for portable defaults
 templates/openclaw.json.template Runtime config template rendered into config/openclaw.json
 scripts/render-secrets-up.sh    Render secrets + start the container
 scripts/check-models.sh         Probe configured models and audit policy against provider catalogs
+scripts/cron-news-brief.sh      Host-side daily news brief (workaround for broken built-in cron)
 workspace/                      Agent workspace (gitignored)
 ```
 
@@ -61,6 +62,9 @@ workspace/                      Agent workspace (gitignored)
 - Prefer `./oc ...` over raw `docker compose ...` for per-instance operations because the wrapper loads `.env.instance.local` automatically
 - For Telegram pairing approval, some shell runners do not preserve `cd` between commands; use the absolute wrapper path (`~/GitHub/alastori/openclaw-sandbox/oc ...`) or `cd ... && ...` in a single shell invocation
 - Parallel instances must not share the same Telegram bot token with polling enabled unless you deliberately want them competing for the same updates
+- **Always use `docker compose --env-file .runtime/openclaw.env up -d`** (or `bash ./scripts/render-secrets-up.sh`) instead of bare `docker compose up -d`; the env file carries the API keys and without it the container starts with empty credentials
+- `ollama/qwen2.5-coder:32b-instruct-q8_0` is configured as a third fallback after Anthropic and OpenAI; it is reached via `host.docker.internal:11434` and works when hosted providers are down
+- OpenClaw's built-in `cron run` executor is broken as of 2026.3.8–2026.3.11: `cron run` returns `enqueued: true` but the internal dispatch loop never starts the agent turn (no transcript, no run record, no log entry). The built-in cron job is disabled; the daily news brief is driven by a host-side launchd job (`com.alastori.openclaw-news-brief`) running `scripts/cron-news-brief.sh` instead
 
 ## Security Notes
 
