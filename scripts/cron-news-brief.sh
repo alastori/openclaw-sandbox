@@ -6,6 +6,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+# Fail fast if Docker runtime or gateway container is not available
+# (Colima availability is managed by the colima-keepalive cronctl job)
+colima status &>/dev/null || { echo "[$(date -Iseconds)] Colima not running — aborting" >&2; exit 1; }
+docker compose ps --status running --format '{{.Name}}' 2>/dev/null | grep -q gateway || {
+  echo "[$(date -Iseconds)] Gateway container not running — aborting" >&2; exit 1
+}
+
 # Extract bot token from env file (can't source directly — unquoted spaces)
 if [[ -f .runtime/openclaw.env ]]; then
   TELEGRAM_BOT_TOKEN=$(grep '^TELEGRAM_BOT_TOKEN=' .runtime/openclaw.env | cut -d= -f2-)
