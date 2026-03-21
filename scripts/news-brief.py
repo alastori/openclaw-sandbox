@@ -9,7 +9,7 @@ import os
 import re
 import sys
 import xml.etree.ElementTree as ET
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 from urllib.error import URLError
@@ -296,18 +296,28 @@ def send_telegram(text: str, bot_token: str) -> int:
 # Main
 # ---------------------------------------------------------------------------
 
+def _alert(msg: str, bot_token: str) -> None:
+    """Best-effort Telegram error notification."""
+    try:
+        send_telegram(f"[News Brief Failed] {msg}", bot_token)
+    except Exception:
+        pass
+
+
 def main() -> int:
     log("Starting news brief (RSS → Ollama)...")
+
+    bot_token = get_bot_token()
 
     # Check Ollama is running
     try:
         with urlopen(Request("http://localhost:11434/api/tags"), timeout=5) as resp:
             resp.read()
     except Exception:
-        log_err("Ollama not reachable at localhost:11434")
+        msg = "Ollama not reachable at localhost:11434"
+        log_err(msg)
+        _alert(msg, bot_token)
         return 1
-
-    bot_token = get_bot_token()
 
     # Warm up model
     log("Warming up Ollama model...")
@@ -322,7 +332,9 @@ def main() -> int:
         with urlopen(req, timeout=60) as resp:
             resp.read()
     except Exception as e:
-        log_err(f"Model warmup failed: {e}")
+        msg = f"Model warmup failed: {e}"
+        log_err(msg)
+        _alert(msg, bot_token)
         return 1
 
     # Fetch RSS feeds
@@ -333,7 +345,7 @@ def main() -> int:
     if total_items < 5:
         msg = f"Too few feed items ({total_items}) — feeds may be down"
         log_err(msg)
-        send_telegram(f"[News Brief Failed] {msg}", bot_token)
+        _alert(msg, bot_token)
         return 1
 
     # Synthesize with Ollama
@@ -345,7 +357,7 @@ def main() -> int:
     except Exception as e:
         msg = f"Ollama generation failed: {e}"
         log_err(msg)
-        send_telegram(f"[News Brief Failed] {msg}", bot_token)
+        _alert(msg, bot_token)
         return 1
 
     # Prepend date header
@@ -365,7 +377,7 @@ def main() -> int:
     if error:
         msg = f"Validation failed: {error}"
         log_err(msg)
-        send_telegram(f"[News Brief Failed] {msg}", bot_token)
+        _alert(msg, bot_token)
         return 1
 
     log(f"Output validated ({len(brief)} chars)")
