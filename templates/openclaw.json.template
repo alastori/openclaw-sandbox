@@ -38,12 +38,16 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "anthropic/claude-sonnet-4-6",
+        "primary": "google/gemini-2.5-flash",
         "fallbacks": [
-          "openai/gpt-5.4"
+          "openai/gpt-5.4",
+          "ollama/qwen2.5-coder:32b-instruct-q8_0"
         ]
       },
       "models": {
+        "google/gemini-2.5-flash": {
+          "alias": "Gemini 2.5 Flash"
+        },
         "anthropic/claude-sonnet-4-6": {
           "alias": "Sonnet 4.6",
           "params": {

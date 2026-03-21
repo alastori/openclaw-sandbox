@@ -2,10 +2,10 @@
   "version": 1,
   "defaults": {
     "primary": {
-      "provider": "anthropic",
-      "pinned": "anthropic/claude-sonnet-4-6",
-      "alias": "Sonnet 4.6",
-      "familyRegex": "^claude-sonnet-(\\d+)(?:-(\\d{1,2}))?$",
+      "provider": "google",
+      "pinned": "google/gemini-2.5-flash",
+      "alias": "Gemini 2.5 Flash",
+      "familyRegex": "^gemini-2\\.5-flash",
       "adopt": "notify"
     },
     "fallbacks": [
@@ -15,6 +15,13 @@
         "alias": "GPT-5.4",
         "familyRegex": "^gpt-5(?:\\.(\\d+))?$",
         "adopt": "notify"
+      },
+      {
+        "provider": "ollama",
+        "pinned": "ollama/qwen2.5-coder:32b-instruct-q8_0",
+        "alias": "Qwen 2.5 Coder Local",
+        "familyRegex": "^qwen2\\.5-coder",
+        "adopt": "manual"
       }
     ]
   }
