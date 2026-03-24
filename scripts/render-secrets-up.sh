@@ -5,7 +5,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-MODEL_POLICY_FILE="${MODEL_POLICY_FILE:-models.policy.json}"
+MODEL_POLICY_FILE="${MODEL_POLICY_FILE:-defaults/models.policy.json}"
+DEFAULTS_DIR="${DEFAULTS_DIR:-defaults}"
 
 # shellcheck disable=SC1091
 source "$ROOT_DIR/scripts/load-local-env.sh"
@@ -51,7 +52,16 @@ chmod 600 "$runtime_env_tmp"
 op inject -i templates/openclaw.json.template -o "$config_tmp"
 chmod 600 "$config_tmp"
 
+# Substitute non-secret env vars that op inject doesn't handle.
+: "${TELEGRAM_BOT_NAME:=my_openclaw_bot}"
+sed -i.bak "s|\${TELEGRAM_BOT_NAME}|${TELEGRAM_BOT_NAME}|g" "$config_tmp"
+rm -f "$config_tmp.bak"
+
 python3 scripts/apply-model-policy.py "$config_tmp" "$MODEL_POLICY_FILE"
+python3 scripts/apply-defaults.py "$config_tmp" "$DEFAULTS_DIR"
+
+# Initialize workspace templates if first run
+bash scripts/init-workspace.sh
 
 if [[ -f config/openclaw.json ]]; then
   backup_path="config/openclaw.json.bak.$(date +%Y%m%d-%H%M%S)"

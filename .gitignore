@@ -6,6 +6,9 @@ workspace/
 .env.instance.local
 .env.secrets.local
 
+# Extension runtime config (user-specific, not tracked)
+extensions/*/config.json
+
 # Secrets
 .env
 .env.*

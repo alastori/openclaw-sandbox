@@ -1,0 +1,11 @@
+{
+  "$comment": "Enforced governance defaults. Merged into openclaw.json at deploy time.",
+  "agents": {
+    "defaults": {
+      "contextTokens": 50000,
+      "compaction": {
+        "mode": "safeguard"
+      }
+    }
+  }
+}

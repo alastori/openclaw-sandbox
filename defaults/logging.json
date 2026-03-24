@@ -1,0 +1,16 @@
+{
+  "$comment": "Enforced logging defaults. Merged into openclaw.json at deploy time.",
+  "logging": {
+    "level": "info",
+    "consoleLevel": "info",
+    "consoleStyle": "compact",
+    "file": "/home/node/.openclaw/logs/openclaw.log",
+    "redactSensitive": "tools",
+    "redactPatterns": [
+      "sk-ant-[a-zA-Z0-9_-]+",
+      "sk-[a-zA-Z0-9_-]{20,}",
+      "AIzaSy[a-zA-Z0-9_-]+",
+      "\\b[0-9]{9,11}:[A-Za-z0-9_-]{35}\\b"
+    ]
+  }
+}

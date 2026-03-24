@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "defaults": {
+    "primary": {
+      "provider": "google",
+      "pinned": "google/gemini-2.5-flash",
+      "alias": "Gemini 2.5 Flash",
+      "familyRegex": "^gemini-2\\.5-flash",
+      "adopt": "notify"
+    },
+    "fallbacks": [
+      {
+        "provider": "openai-codex",
+        "pinned": "openai-codex/gpt-5.4",
+        "alias": "GPT-5.4 Codex",
+        "familyRegex": "^gpt-5(?:\\.(\\d+))?$",
+        "adopt": "notify"
+      },
+      {
+        "provider": "openai",
+        "pinned": "openai/gpt-5.4",
+        "alias": "GPT-5.4 API",
+        "familyRegex": "^gpt-5(?:\\.(\\d+))?$",
+        "adopt": "notify"
+      },
+      {
+        "provider": "ollama",
+        "pinned": "ollama/qwen2.5-coder:32b-instruct-q8_0",
+        "alias": "Qwen 2.5 Coder Local",
+        "familyRegex": "^qwen2\\.5-coder",
+        "adopt": "manual"
+      }
+    ]
+  }
+}

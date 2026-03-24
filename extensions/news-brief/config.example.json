@@ -1,0 +1,39 @@
+{
+  "telegram_chat_id": "",
+  "ollama_url": "http://localhost:11434/api/generate",
+  "ollama_model": "qwen3-coder:30b-a3b-q8_0",
+  "max_items_per_feed": 8,
+  "sections": [
+    {
+      "name": "United States",
+      "feeds": [
+        { "label": "NPR", "url": "https://feeds.npr.org/1001/rss.xml" },
+        { "label": "Google News US", "url": "https://news.google.com/rss/search?q=United+States+news+when:1d&hl=en-US&gl=US&ceid=US:en" }
+      ]
+    },
+    {
+      "name": "Local",
+      "feeds": [
+        { "label": "Google News Local", "url": "https://news.google.com/rss/search?q=your+city+when:1d&hl=en-US&gl=US&ceid=US:en" }
+      ]
+    },
+    {
+      "name": "World",
+      "feeds": [
+        { "label": "BBC World", "url": "http://feeds.bbci.co.uk/news/world/rss.xml" }
+      ]
+    },
+    {
+      "name": "Science",
+      "feeds": [
+        { "label": "Google News Science", "url": "https://news.google.com/rss/search?q=science+discovery+OR+space+OR+research+breakthrough+when:1d&hl=en-US&gl=US&ceid=US:en" }
+      ]
+    },
+    {
+      "name": "Fun",
+      "feeds": [
+        { "label": "Atlas Obscura", "url": "https://www.atlasobscura.com/feeds/latest" }
+      ]
+    }
+  ]
+}

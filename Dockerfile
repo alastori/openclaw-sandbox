@@ -1,5 +1,8 @@
 FROM node:22-bookworm-slim
 
+ARG OPENCLAW_VERSION=latest
+ARG INSTALL_GEMINI_CLI=true
+
 # Install build tools for native modules (e.g. @discordjs/opus)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
@@ -10,8 +13,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libopus-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install OpenClaw and Gemini CLI globally
-RUN npm install -g openclaw@latest @google/gemini-cli
+# Install OpenClaw globally (and optionally Gemini CLI for OAuth)
+RUN npm install -g openclaw@${OPENCLAW_VERSION} \
+    && if [ "$INSTALL_GEMINI_CLI" = "true" ]; then npm install -g @google/gemini-cli; fi
 
 # Remove build tools but keep python3 and cron for agent tasks
 RUN apt-get purge -y build-essential && apt-get autoremove -y \
@@ -26,10 +30,8 @@ RUN mkdir -p /home/node/.openclaw /home/node/workspace \
 USER node
 WORKDIR /home/node
 
-EXPOSE 18789
-
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD curl -sf http://localhost:18789/ -o /dev/null || exit 1
+  CMD curl -sf http://localhost:${OPENCLAW_PORT:-18789}/ -o /dev/null || exit 1
 
 # Start the gateway in foreground mode
 CMD ["openclaw", "gateway", "run"]

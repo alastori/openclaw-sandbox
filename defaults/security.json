@@ -1,0 +1,31 @@
+{
+  "$comment": "Enforced security defaults. Merged into openclaw.json at deploy time.",
+  "tools": {
+    "elevated": {
+      "enabled": false
+    },
+    "loopDetection": {
+      "enabled": true,
+      "warningThreshold": 10,
+      "criticalThreshold": 20,
+      "globalCircuitBreakerThreshold": 30
+    },
+    "exec": {
+      "timeoutSec": 120
+    }
+  },
+  "commands": {
+    "bash": false,
+    "config": false,
+    "debug": false
+  },
+  "gateway": {
+    "auth": {
+      "rateLimit": {
+        "maxAttempts": 10,
+        "windowMs": 60000,
+        "lockoutMs": 300000
+      }
+    }
+  }
+}

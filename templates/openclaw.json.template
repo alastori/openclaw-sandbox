@@ -105,7 +105,7 @@
   },
   "channels": {
     "telegram": {
-      "name": "alastori_clawd_bot",
+      "name": "${TELEGRAM_BOT_NAME}",
       "enabled": true,
       "dmPolicy": "pairing",
       "botToken": "op://${OP_VAULT}/${OP_ITEM}/telegram_bot_token",
