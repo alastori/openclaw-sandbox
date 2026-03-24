@@ -10,8 +10,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libopus-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install OpenClaw globally
-RUN npm install -g openclaw@latest
+# Install OpenClaw and Gemini CLI globally
+RUN npm install -g openclaw@latest @google/gemini-cli
 
 # Remove build tools but keep python3 and cron for agent tasks
 RUN apt-get purge -y build-essential && apt-get autoremove -y \
