@@ -13,9 +13,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install OpenClaw globally
 RUN npm install -g openclaw@latest
 
-# Remove build tools but keep python3 for agent tasks
+# Remove build tools but keep python3 and cron for agent tasks
 RUN apt-get purge -y build-essential && apt-get autoremove -y \
-    && apt-get update && apt-get install -y --no-install-recommends python3 \
+    && apt-get update && apt-get install -y --no-install-recommends python3 cron \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user workspace

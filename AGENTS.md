@@ -45,8 +45,11 @@ workspace/                      Agent workspace (gitignored)
 - `gateway.auth.rateLimit` is enabled in both tracked config entry points (`maxAttempts: 10`, `windowMs: 60000`, `lockoutMs: 300000`) because the gateway binds on `lan` inside Docker
 - `docker-compose.yml` already uses `restart: unless-stopped`; for a future headless Linux deployment, persistence should be managed by enabling the Docker engine at boot via `systemd`, not by creating a separate host service for OpenClaw
 - `config/openclaw.json.example` disables native `web_search`; the rendered runtime template currently enables OpenClaw web search and can still coexist with the DDG skill
-- The portable runtime template is hosted-first: `anthropic/claude-sonnet-4-6` primary, `openai/gpt-5.4` fallback, local Ollama models optional
+- The portable runtime template is hosted-first: `google/gemini-2.5-flash` primary, `openai-codex/gpt-5.4` (subscription) → `openai/gpt-5.4` (API) → local Ollama fallback
+- **Model auth strategy:** Gemini uses bundled `google` plugin with `google-gemini-cli` OAuth (free tier); OpenAI prefers Codex OAuth (subscription) with API key as fallback; Anthropic uses API key only (subscription OAuth is banned for third-party tools since Jan 2026)
 - Hosted defaults are pinned in `models.policy.json`; `bash ./scripts/check-models.sh --adopt` updates that policy only after an explicit opt-in
+- After rebuilding, run `./oc models auth login --provider openai-codex` (interactive TTY) to set up OpenAI Codex OAuth
+- After rebuilding, run `./oc models auth login --provider google-gemini-cli` (interactive TTY) to set up Google Gemini OAuth
 - If Anthropic appears to "rate limit" unexpectedly during live turns, also check billing/credits; OpenClaw can surface insufficient-credit failures as generic rate-limit-style failovers
 - `agents.defaults.contextTokens` is set to 50000 to stay within the model's 65K context window (leaving ~15K headroom for system prompt and tool definitions)
 - Ollama concurrency is controlled on the host with `OLLAMA_NUM_PARALLEL`; there is no OpenClaw config field like `models.providers.ollama.maxConcurrent`
