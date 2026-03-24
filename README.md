@@ -47,7 +47,7 @@ macOS Host
         └── Workspace: ./workspace/ -> /home/node/workspace
 ```
 
-The LLM runs natively on the host for full Metal GPU acceleration. The Docker container runs the OpenClaw gateway with Node.js 22 and Python 3 available for agent tasks, capped at 2 GB RAM and 2 CPU cores.
+The LLM runs natively on the host for full Metal GPU acceleration. The Docker container runs the OpenClaw gateway with Node.js 22, Python 3, cron, and Gemini CLI available for agent tasks, capped at 2 GB RAM and 2 CPU cores.
 
 ## Common Commands
 
@@ -100,7 +100,15 @@ The repo has two tracked configuration entry points:
 - `templates/openclaw.json.template` — richer runtime template rendered by `./scripts/render-secrets-up.sh`
 
 Use the rendered template as the reference for the current day-to-day setup. It includes the generic secret-rendering flow, Telegram token placeholders, and GitHub Copilot fallback wiring.
-The current portable default policy is hosted-first: `anthropic/claude-sonnet-4-6` as primary, `openai/gpt-5.4` as automatic fallback, with local Ollama models kept as optional manual choices.
+The current portable default policy is hosted-first: `google/gemini-2.5-flash` as primary, `openai-codex/gpt-5.4` (Codex OAuth subscription) as first fallback, `openai/gpt-5.4` (API key) as second fallback, and local Ollama models as last resort.
+
+**Model auth strategy:** Gemini uses the bundled `google` plugin with `google-gemini-cli` OAuth (free tier); OpenAI prefers Codex OAuth (subscription) with API key as fallback; Anthropic uses API key only (subscription OAuth is banned for third-party tools since Jan 2026). After rebuilding, run the interactive OAuth flows:
+
+```bash
+docker compose exec -it openclaw-gateway openclaw models auth login --provider openai-codex
+docker compose exec -it openclaw-gateway openclaw models auth login --provider google-gemini-cli
+```
+
 Pinned hosted defaults live in `models.policy.json`, and `bash ./scripts/render-secrets-up.sh` applies that policy to the rendered config before starting the container.
 
 ## 1Password Service Account Flow
@@ -181,7 +189,7 @@ OPENCLAW_PORT=18790
 
 This repo does not support multiple independent users from a single checkout because `config/` and `workspace/` are shared within one repo directory.
 `./setup.sh` now also respects `OPENCLAW_PORT` for checkouts that start from `config/openclaw.json.example`, not just the secrets-rendered path.
-Validated on 2026-03-11 with a second checkout on port `18790`: the first turn in a brand-new container used the default provider `anthropic/claude-sonnet-4-6`.
+Validated on 2026-03-11 with a second checkout on port `18790` (default provider is now `google/gemini-2.5-flash`).
 For routine per-instance operations, prefer `./oc ...` over raw `docker compose ...`; the wrapper loads `.env.instance.local` automatically.
 If two parallel instances share the same Telegram bot token, only one should poll Telegram at a time. For smoke tests or temporary side-by-side instances, disable Telegram in the secondary instance or give it a different bot token.
 
@@ -202,7 +210,7 @@ If you already have a valid `.env.secrets.local` from another checkout, you can 
 Validated on 2026-03-11 from the main checkout after a config reset:
 - soft-deleting the runtime `config/` contents to `~/Desktop/_TRASH/...` and re-running `bash ./scripts/render-secrets-up.sh` is a safe way to force a truly fresh local state
 - the first probe immediately after container start can fail with a transient gateway websocket close if the gateway restarts once during boot; rerun the probe after `./oc health` is clean
-- after that rebuild, the first successful live turn in the main checkout again used the default provider `anthropic/claude-sonnet-4-6`
+- after that rebuild, the first successful live turn in the main checkout used the default provider
 
 ### Periodic Model Audit
 
@@ -420,9 +428,7 @@ docker run --rm --add-host=host.docker.internal:host-gateway alpine \
 <details>
 <summary>Built-in cron jobs not executing</summary>
 
-OpenClaw's built-in `cron run` executor is broken as of 2026.3.8–2026.3.11: manual runs return `enqueued: true` but the internal dispatch loop never starts the agent turn (no transcript, no run record, no log entry).
-
-Workaround: use a host-side scheduler (launchd on macOS, systemd timer on Linux) running `scripts/cron-news-brief.sh`, which calls `./oc agent` and delivers the output to Telegram via the Bot API.
+The built-in cron scheduler was broken in 2026.3.8–2026.3.11 but is fixed and enabled as of 2026.3.23. Check status with `./oc cron status`. If you're still on an older version, use a host-side scheduler (launchd on macOS, systemd timer on Linux) as a workaround.
 </details>
 
 ## License
