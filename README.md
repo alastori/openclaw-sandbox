@@ -87,7 +87,7 @@ For future headless-server deployments: this repo already sets `restart: unless-
 The setup script creates `config/openclaw.json` from the included example template. You can also copy it manually:
 
 ```bash
-cp config/openclaw.json.example config/openclaw.json
+cp templates/openclaw.json.minimal config/openclaw.json
 ```
 
 After any config change, restart the gateway with `docker compose restart`.
@@ -96,10 +96,19 @@ After any config change, restart the gateway with `docker compose restart`.
 
 The repo has two tracked configuration entry points:
 
-- `config/openclaw.json.example` — minimal local-only example for manual setup
+- `templates/openclaw.json.minimal` — minimal local-only example for manual setup
 - `templates/openclaw.json.template` — richer runtime template rendered by `./scripts/render-secrets-up.sh`
 
-Use the rendered template as the reference for the current day-to-day setup. It includes the generic secret-rendering flow, Telegram token placeholders, and GitHub Copilot fallback wiring.
+Use the rendered template as the reference for the current day-to-day setup. It includes the generic secret-rendering flow, Telegram token placeholders, and model auth strategy.
+
+### Enforced Defaults
+
+The `defaults/` directory contains JSON overlays that are deep-merged into the rendered config at deploy time. User-explicit values always win; defaults only fill in missing keys.
+
+- `defaults/security.json` — elevated tools off, loop detection, rate limits, bash/debug commands disabled
+- `defaults/logging.json` — file logging path, API key redaction patterns
+- `defaults/governance.json` — context tokens, compaction mode
+- `defaults/models.policy.json` — pinned primary/fallback model choices
 The current portable default policy is hosted-first: `google/gemini-2.5-flash` as primary, `openai-codex/gpt-5.4` (Codex OAuth subscription) as first fallback, `openai/gpt-5.4` (API key) as second fallback, and local Ollama models as last resort.
 
 **Model auth strategy:** Gemini uses the bundled `google` plugin with `google-gemini-cli` OAuth (free tier); OpenAI prefers Codex OAuth (subscription) with API key as fallback; Anthropic uses API key only (subscription OAuth is banned for third-party tools since Jan 2026). After rebuilding, run the interactive OAuth flows:
@@ -109,7 +118,7 @@ docker compose exec -it openclaw-gateway openclaw models auth login --provider o
 docker compose exec -it openclaw-gateway openclaw models auth login --provider google-gemini-cli
 ```
 
-Pinned hosted defaults live in `models.policy.json`, and `bash ./scripts/render-secrets-up.sh` applies that policy to the rendered config before starting the container.
+Pinned hosted defaults live in `defaults/models.policy.json`, and `bash ./scripts/render-secrets-up.sh` applies that policy to the rendered config before starting the container.
 
 ## 1Password Service Account Flow
 
@@ -157,8 +166,11 @@ Files involved:
 - `.env.secrets.local.example` — example local bootstrap file
 - `.env.secrets.local` — untracked local bootstrap token
 - `scripts/bootstrap-secrets-local.sh` — creates the service account token and local bootstrap file
-- `models.policy.json` — pinned hosted-model policy for portable primary/fallback choices
+- `defaults/models.policy.json` — pinned hosted-model policy for portable primary/fallback choices
+- `defaults/security.json`, `logging.json`, `governance.json` — enforced config overlays
 - `scripts/apply-model-policy.py` — applies the pinned model policy to the rendered config
+- `scripts/apply-defaults.py` — deep-merges defaults into the rendered config
+- `scripts/init-workspace.sh` — copies `workspace-templates/` into `config/workspace/` on first run
 - `templates/openclaw.json.template` — tracked config template with 1Password secret references
 - `.runtime/openclaw.env` — generated runtime env file, untracked
 
@@ -188,7 +200,7 @@ OPENCLAW_PORT=18790
 ```
 
 This repo does not support multiple independent users from a single checkout because `config/` and `workspace/` are shared within one repo directory.
-`./setup.sh` now also respects `OPENCLAW_PORT` for checkouts that start from `config/openclaw.json.example`, not just the secrets-rendered path.
+`./setup.sh` now also respects `OPENCLAW_PORT` for checkouts that start from `templates/openclaw.json.minimal`, not just the secrets-rendered path.
 Validated on 2026-03-11 with a second checkout on port `18790` (default provider is now `google/gemini-2.5-flash`).
 For routine per-instance operations, prefer `./oc ...` over raw `docker compose ...`; the wrapper loads `.env.instance.local` automatically.
 If two parallel instances share the same Telegram bot token, only one should poll Telegram at a time. For smoke tests or temporary side-by-side instances, disable Telegram in the secondary instance or give it a different bot token.
@@ -269,7 +281,7 @@ Do not run two instances with the same Telegram bot token enabled unless you exp
 
 Web fetching (`web_fetch`) is enabled by default. There are currently two tracked variants:
 
-- `config/openclaw.json.example` disables native `web_search`
+- `templates/openclaw.json.minimal` disables native `web_search`
 - `templates/openclaw.json.template` enables native `web_search`
 
 The DuckDuckGo skill can still coexist with native web search and remains useful when you want explicit DDG-style results.

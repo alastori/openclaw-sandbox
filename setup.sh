@@ -91,11 +91,12 @@ echo ""
 echo "[5/7] Configuring OpenClaw..."
 
 if [ ! -f "$CONFIG_DIR/openclaw.json" ]; then
-    if [ ! -f "$CONFIG_DIR/openclaw.json.example" ]; then
-        echo "ERROR: config/openclaw.json.example not found. Re-clone the repo."
+    MINIMAL_TEMPLATE="$ROOT_DIR/templates/openclaw.json.minimal"
+    if [ ! -f "$MINIMAL_TEMPLATE" ]; then
+        echo "ERROR: templates/openclaw.json.minimal not found. Re-clone the repo."
         exit 1
     fi
-    cp "$CONFIG_DIR/openclaw.json.example" "$CONFIG_DIR/openclaw.json"
+    cp "$MINIMAL_TEMPLATE" "$CONFIG_DIR/openclaw.json"
 
     OPENCLAW_PORT="$OPENCLAW_PORT" python3 - "$CONFIG_DIR/openclaw.json" <<'PY'
 import json

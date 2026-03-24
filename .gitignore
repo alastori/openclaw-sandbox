@@ -1,6 +1,5 @@
 # OpenClaw runtime data (config/* allows negation of specific files)
 config/*
-!config/openclaw.json.example
 workspace/
 .runtime/
 .env.instance.local

@@ -10,7 +10,7 @@ source "$ROOT_DIR/scripts/load-local-env.sh"
 
 CONFIG_FILE="${CONFIG_FILE:-config/openclaw.json}"
 RUNTIME_ENV_FILE="${RUNTIME_ENV_FILE:-.runtime/openclaw.env}"
-MODEL_POLICY_FILE="${MODEL_POLICY_FILE:-models.policy.json}"
+MODEL_POLICY_FILE="${MODEL_POLICY_FILE:-defaults/models.policy.json}"
 TIMEOUT_SEC="${TIMEOUT_SEC:-20}"
 ADOPT=0
 
