@@ -28,10 +28,10 @@ workspace-templates/                Tracked seed files copied to config/workspac
   SOUL.md, USER.md, IDENTITY.md, AGENTS.md, BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md
 
 extensions/                         Optional add-ons, mounted read-only at /home/node/extensions
-  notifications/                    Notification buffer + digest system
+  notifications/                    Notification buffer + digest system with Telegram topic routing
     buffer.py                       Write notification: --tier low|medium|critical --title --body
-    digest.py                       Collect buffer, format digest, deliver to Telegram
-    config.example.json             Tier schedules, chat ID, buffer path
+    digest.py                       Collect buffer, format digest, deliver to Telegram (routes by topic)
+    config.example.json             Tier schedules, topic IDs, chat ID, buffer path
   news-brief/                       RSS → Ollama → Telegram daily brief
     config.example.json             Template: feeds, chat ID, model
     news-brief.py                   Main script
@@ -42,6 +42,7 @@ extensions/                         Optional add-ons, mounted read-only at /home
 scripts/
   render-secrets-up.sh              Pipeline: op inject → model policy → defaults → workspace init → deploy
   setup-crons.sh                    Create default cron jobs (idempotent, skips existing)
+  setup-telegram-topics.sh          Create Ops + Alerts topics in a Telegram group, update configs
   apply-defaults.py                 Deep-merge defaults/*.json into rendered config
   apply-model-policy.py             Apply pinned model policy
   init-workspace.sh                 Copy workspace-templates/ into config/workspace/ (first run only)
@@ -102,6 +103,7 @@ workspace/                          gitignored — agent working directory
   - `morning-log-review` — 7:00 AM ET, reviews overnight logs, writes to `learnings.md`
   - `digest-morning` — 7:15 AM ET, delivers combined overnight notification digest
   - All nightly crons buffer to the notification system (`extensions/notifications/`); the digest cron collects and delivers one combined Telegram message
+- **Telegram topics:** Run `bash scripts/setup-telegram-topics.sh` after adding the bot to a Telegram group with Topics enabled. Creates "Ops" and "Alerts" topics, routes critical notifications to Alerts and routine digests to Ops. See README for manual prerequisites
   - All use `google/gemini-2.5-flash` with isolated sessions
 
 ## Security Notes

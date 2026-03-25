@@ -131,18 +131,17 @@ else:
 
   if [[ "$topic_id" == ERROR:* ]]; then
     echo "  Failed to create '$name': ${topic_id#ERROR:}" >&2
-    echo ""
     return 1
   fi
 
-  echo "  Created '$name' (topic_id: $topic_id)"
+  echo "  Created '$name' (topic_id: $topic_id)" >&2
   echo "$topic_id"
 }
 
 OPS_TOPIC=$(create_topic "Ops" 16766590)      # 0xFFD67E — amber
 ALERTS_TOPIC=$(create_topic "Alerts" 16749490) # 0xFF6347 — red-ish
 
-if [[ -z "$OPS_TOPIC" || -z "$ALERTS_TOPIC" ]]; then
+if [[ -z "$OPS_TOPIC" || -z "$ALERTS_TOPIC" || "$OPS_TOPIC" == *"ERROR"* || "$ALERTS_TOPIC" == *"ERROR"* ]]; then
   echo ""
   echo "Topic creation failed. The bot needs Admin rights with 'Manage Topics' permission."
   exit 1
