@@ -27,14 +27,21 @@ defaults/                           Enforced config overlays (merged at deploy t
 workspace-templates/                Tracked seed files copied to config/workspace/ on first deploy
   SOUL.md, USER.md, IDENTITY.md, AGENTS.md, BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md
 
-extensions/                         Optional add-ons (not loaded by default)
+extensions/                         Optional add-ons, mounted read-only at /home/node/extensions
+  notifications/                    Notification buffer + digest system
+    buffer.py                       Write notification: --tier low|medium|critical --title --body
+    digest.py                       Collect buffer, format digest, deliver to Telegram
+    config.example.json             Tier schedules, chat ID, buffer path
   news-brief/                       RSS → Ollama → Telegram daily brief
     config.example.json             Template: feeds, chat ID, model
     news-brief.py                   Main script
     cron-news-brief.sh              Thin wrapper for launchd/cronctl
+  backup/
+    backup.sh                       Git auto-commit + push tracked changes
 
 scripts/
   render-secrets-up.sh              Pipeline: op inject → model policy → defaults → workspace init → deploy
+  setup-crons.sh                    Create default cron jobs (idempotent, skips existing)
   apply-defaults.py                 Deep-merge defaults/*.json into rendered config
   apply-model-policy.py             Apply pinned model policy
   init-workspace.sh                 Copy workspace-templates/ into config/workspace/ (first run only)
@@ -87,11 +94,15 @@ workspace/                          gitignored — agent working directory
 - `ollama/qwen2.5-coder:32b-instruct-q8_0` is the last-resort fallback (after `openai-codex` and `openai` API); reached via `host.docker.internal:11434` and works when all hosted providers are down
 - OpenClaw's built-in cron scheduler is enabled and running as of 2026.3.23 (was broken in 2026.3.8–2026.3.11). The daily news brief lives in `extensions/news-brief/` and can be run via host-side cronctl or migrated to built-in OpenClaw cron
 - **ClawSec** security skill suite is baked into the Docker image (drift detection, integrity checks, CVE advisory feed). Discovered via `skills.load.extraDirs: ["/home/node/skills"]`
-- **Built-in nightly crons** (stored in `config/cron/jobs.json`, persisted via volume mount):
-  - `nightly-update-check` — 2:00 AM ET, checks for OpenClaw updates, reports to Telegram
-  - `nightly-security-audit` — 2:30 AM ET, runs `security audit --deep`, reports findings
-  - `morning-log-review` — 7:00 AM ET, reviews overnight logs for errors, proposes fixes
-  - All use `google/gemini-2.5-flash` with 180s timeout and isolated sessions
+- **Default crons** created by `bash scripts/setup-crons.sh` (stored in `config/cron/jobs.json`, persisted via volume mount):
+  - `nightly-update-check` — 2:00 AM ET, checks for OpenClaw updates
+  - `nightly-security-audit` — 2:30 AM ET, runs `security audit --deep`
+  - `nightly-doc-drift` — 3:00 AM ET, compares workspace docs against actual state
+  - `weekly-memory-synthesis` — Sunday 3:40 AM ET, distills daily memory into MEMORY.md
+  - `morning-log-review` — 7:00 AM ET, reviews overnight logs, writes to `learnings.md`
+  - `digest-morning` — 7:15 AM ET, delivers combined overnight notification digest
+  - All nightly crons buffer to the notification system (`extensions/notifications/`); the digest cron collects and delivers one combined Telegram message
+  - All use `google/gemini-2.5-flash` with isolated sessions
 
 ## Security Notes
 
