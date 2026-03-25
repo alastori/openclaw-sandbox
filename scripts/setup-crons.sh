@@ -20,8 +20,8 @@ if [[ "$CHAT_ID" == "--telegram-chat-id" ]]; then
 fi
 
 OC="$ROOT_DIR/oc"
-MODEL_LIGHT="google/gemini-2.5-flash"   # Lightweight checks (update, security audit, digest)
-MODEL_HEAVY="anthropic/claude-sonnet-4-6" # Reasoning-heavy tasks (doc drift, memory synthesis)
+MODEL_LIGHT="google/gemini-2.5-flash"   # Lightweight checks (update, security audit, digest) — subscription
+MODEL_HEAVY="openai-codex/gpt-5.4"      # Reasoning-heavy tasks (doc drift, memory synthesis) — subscription
 TZ="America/New_York"
 
 existing=$("$OC" cron list 2>/dev/null | tail -n +2 || true)

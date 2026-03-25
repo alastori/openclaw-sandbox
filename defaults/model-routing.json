@@ -1,13 +1,13 @@
 {
-  "$comment": "Model routing reference. Not merged into openclaw.json — used by setup-crons.sh and as documentation for the recommended model strategy.",
+  "$comment": "Model routing reference. Not merged into openclaw.json — used by setup-crons.sh and as documentation for the recommended model strategy. Prefer subscription models (Gemini CLI OAuth, OpenAI Codex OAuth) over API-billed models (Anthropic) to control costs.",
   "strategy": {
     "main_chat": {
       "model": "google/gemini-2.5-flash",
       "rationale": "Fast, cheap, good enough for general conversation and planning. Subscription via google-gemini-cli OAuth."
     },
     "coding": {
-      "model": "anthropic/claude-sonnet-4-6",
-      "rationale": "Best coding model. Use /model sonnet in a Coding topic, or delegate to sub-agent."
+      "model": "openai-codex/gpt-5.4",
+      "rationale": "Strong coding model on subscription billing. Use /model gpt-5.4 in a Coding topic, or delegate to sub-agent."
     },
     "deep_research": {
       "model": "openai-codex/gpt-5.4",
@@ -18,8 +18,12 @@
       "rationale": "Nightly ops crons are lightweight checks. No need for frontier models."
     },
     "crons_heavy": {
+      "model": "openai-codex/gpt-5.4",
+      "rationale": "Memory synthesis and doc drift benefit from stronger reasoning. Subscription via Codex OAuth."
+    },
+    "precision": {
       "model": "anthropic/claude-sonnet-4-6",
-      "rationale": "Memory synthesis and doc drift benefit from stronger reasoning."
+      "rationale": "Best-in-class for complex analysis. API-billed — use sparingly for tasks where Codex falls short."
     },
     "local_fallback": {
       "model": "ollama/qwen3-coder:30b-a3b-q8_0",
@@ -28,7 +32,7 @@
   },
   "topic_suggestions": {
     "General": "google/gemini-2.5-flash",
-    "Coding": "anthropic/claude-sonnet-4-6",
+    "Coding": "openai-codex/gpt-5.4",
     "Research": "openai-codex/gpt-5.4"
   }
 }
