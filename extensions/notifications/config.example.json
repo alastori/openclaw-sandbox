@@ -1,0 +1,9 @@
+{
+  "telegram_chat_id": "",
+  "tiers": {
+    "critical": { "delivery": "immediate" },
+    "medium":   { "delivery": "digest", "interval_minutes": 60 },
+    "low":      { "delivery": "digest", "interval_minutes": 180 }
+  },
+  "buffer_dir": "/home/node/.openclaw/notifications"
+}

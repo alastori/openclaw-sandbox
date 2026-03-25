@@ -14,6 +14,7 @@ services:
     volumes:
       - ./config:/home/node/.openclaw
       - ./workspace:/home/node/workspace
+      - ./extensions:/home/node/extensions:ro
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
