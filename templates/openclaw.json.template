@@ -77,6 +77,11 @@
       }
     }
   },
+  "skills": {
+    "load": {
+      "extraDirs": ["/home/node/skills"]
+    }
+  },
   "tools": {
     "web": {
       "search": {

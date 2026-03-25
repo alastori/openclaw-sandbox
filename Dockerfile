@@ -23,12 +23,15 @@ RUN apt-get purge -y build-essential && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user workspace
-RUN mkdir -p /home/node/.openclaw /home/node/workspace \
+RUN mkdir -p /home/node/.openclaw /home/node/workspace /home/node/skills \
     && chmod 700 /home/node/.openclaw /home/node/workspace \
     && chown -R node:node /home/node
 
 USER node
 WORKDIR /home/node
+
+# Install ClawSec security skill suite as the runtime user
+RUN npx clawhub@latest install clawsec-suite --no-input
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD curl -sf http://localhost:${OPENCLAW_PORT:-18789}/ -o /dev/null || exit 1
