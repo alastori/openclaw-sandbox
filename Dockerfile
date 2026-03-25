@@ -36,5 +36,5 @@ RUN npx clawhub@latest install clawsec-suite --no-input
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD curl -sf http://localhost:${OPENCLAW_PORT:-18789}/ -o /dev/null || exit 1
 
-# Start the gateway in foreground mode
-CMD ["openclaw", "gateway", "run"]
+# Start the gateway with restrictive umask (logs, sessions created as 600)
+CMD ["sh", "-c", "umask 0077 && exec openclaw gateway run"]

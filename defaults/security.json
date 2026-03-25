@@ -12,6 +12,11 @@
     },
     "exec": {
       "timeoutSec": 120
+    },
+    "byProvider": {
+      "ollama": {
+        "deny": ["web_search", "web_fetch", "browser_navigate"]
+      }
     }
   },
   "commands": {
