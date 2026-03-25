@@ -49,13 +49,13 @@ create_if_missing "nightly-security-audit" \
   --cron "30 2 * * *" --tz "$TZ" \
   --model "$MODEL" --thinking off --timeout-seconds 180 \
   --no-deliver \
-  --message "Run a security audit: openclaw security audit --deep. Then write your findings to the notification buffer by running: python3 /home/node/extensions/notifications/buffer.py --tier low --title 'Security Audit' --body '<your one-line summary>' --source nightly-security-audit. If anything is CRITICAL severity, use --tier critical instead."
+  --message "Run a security audit: openclaw security audit --deep. Before reporting, read workspace/learnings.md for known acceptable findings (ClawSec shell patterns, 0.0.0.0 binding, Ollama sandbox warnings). Exclude those from your report. For genuinely new findings, write to the notification buffer: python3 /home/node/extensions/notifications/buffer.py --tier low --title 'Security Audit' --body '<your summary of NEW findings only>' --source nightly-security-audit. Use --tier critical only for genuinely new critical issues. If everything is known/acceptable, buffer a brief all-clear at tier low."
 
 create_if_missing "morning-log-review" \
   --cron "0 7 * * *" --tz "$TZ" \
   --model "$MODEL" --thinking off --timeout-seconds 300 \
   --no-deliver \
-  --message "Review the gateway logs from the last 12 hours. Look for errors, warnings, failed cron runs, model failures. For each issue, if you can identify the root cause, append a lesson to workspace/learnings.md (create if needed) with the date and what went wrong. Then write your summary to the notification buffer: python3 /home/node/extensions/notifications/buffer.py --tier low --title 'Log Review' --body '<your summary>' --source morning-log-review. If any issue is serious, use --tier medium."
+  --message "Review the gateway logs from the last 12 hours. First read workspace/learnings.md for known acceptable findings — do not re-report those. Look for genuinely new errors, warnings, failed cron runs, model failures. For each new issue, if you can identify the root cause, append a lesson to workspace/learnings.md with the date and what went wrong. Then write your summary to the notification buffer: python3 /home/node/extensions/notifications/buffer.py --tier low --title 'Log Review' --body '<your summary of NEW issues only>' --source morning-log-review. Use --tier medium for serious new issues. If nothing new, buffer a brief all-clear at tier low."
 
 create_if_missing "nightly-doc-drift" \
   --cron "0 3 * * *" --tz "$TZ" \
