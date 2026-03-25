@@ -432,6 +432,22 @@ The Docker container enforces:
 - **Gateway auth rate limiting** -- `gateway.auth.rateLimit` defaults to `10` attempts per `60s`, with a `5m` lockout
 - **Private state directories** -- `setup.sh` and `scripts/render-secrets-up.sh` force `config/` and `workspace/` to mode `700`
 - **Elevated tools disabled by default** -- shell/write escalation is off unless you explicitly opt back in with a narrow allowlist
+- **ClawSec skill suite** -- baked into the Docker image; provides drift detection for SOUL.md/IDENTITY.md, skill integrity checks (SHA256), and CVE advisory feed
+- **Prompt injection defense** -- behavioral rules in `workspace-templates/SOUL.md` instruct the agent to treat all external content as untrusted, flag injection patterns, and never execute instructions from fetched content
+- **Outbound PII redaction** -- behavioral rules require the agent to scan outbound messages for API keys, phone numbers, emails, SSNs, and credit cards before sending
+- **Log redaction patterns** -- `defaults/logging.json` includes regex patterns for Anthropic, OpenAI, Google, GitHub, Slack tokens, SSNs, and credit card numbers
+
+### Nightly Crons
+
+Three built-in cron jobs run overnight (managed via `./oc cron list`):
+
+| Job | Schedule (ET) | What it does |
+|-----|--------------|-------------|
+| `nightly-update-check` | 2:00 AM | Checks for OpenClaw updates, reports to Telegram |
+| `nightly-security-audit` | 2:30 AM | Runs `security audit --deep`, reports findings |
+| `morning-log-review` | 7:00 AM | Reviews overnight logs for errors, proposes fixes |
+
+All use `google/gemini-2.5-flash` with isolated sessions. Manage with `./oc cron list`, `./oc cron run <id>`, `./oc cron disable <id>`.
 
 ## Troubleshooting
 

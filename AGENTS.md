@@ -7,7 +7,7 @@ Note: `CLAUDE.md` in the project root is a symlink to this file.
 ## Project Structure
 
 ```
-Dockerfile                          Container image (node:22 + openclaw + gemini-cli + python3 + cron)
+Dockerfile                          Container image (node:22 + openclaw + gemini-cli + clawsec + python3 + cron)
 docker-compose.yml                  Orchestration with security constraints
 setup.sh                            One-command setup script
 oc                                  Host-side shortcut: ./oc <cmd> = docker compose exec ... openclaw <cmd>
@@ -86,6 +86,12 @@ workspace/                          gitignored — agent working directory
 - **Always use `docker compose --env-file .runtime/openclaw.env up -d`** (or `bash ./scripts/render-secrets-up.sh`) instead of bare `docker compose up -d`; the env file carries the API keys and without it the container starts with empty credentials
 - `ollama/qwen2.5-coder:32b-instruct-q8_0` is the last-resort fallback (after `openai-codex` and `openai` API); reached via `host.docker.internal:11434` and works when all hosted providers are down
 - OpenClaw's built-in cron scheduler is enabled and running as of 2026.3.23 (was broken in 2026.3.8–2026.3.11). The daily news brief lives in `extensions/news-brief/` and can be run via host-side cronctl or migrated to built-in OpenClaw cron
+- **ClawSec** security skill suite is baked into the Docker image (drift detection, integrity checks, CVE advisory feed). Discovered via `skills.load.extraDirs: ["/home/node/skills"]`
+- **Built-in nightly crons** (stored in `config/cron/jobs.json`, persisted via volume mount):
+  - `nightly-update-check` — 2:00 AM ET, checks for OpenClaw updates, reports to Telegram
+  - `nightly-security-audit` — 2:30 AM ET, runs `security audit --deep`, reports findings
+  - `morning-log-review` — 7:00 AM ET, reviews overnight logs for errors, proposes fixes
+  - All use `google/gemini-2.5-flash` with 180s timeout and isolated sessions
 
 ## Security Notes
 
