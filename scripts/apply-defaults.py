@@ -36,8 +36,8 @@ def main():
 
     applied = []
     for defaults_file in sorted(defaults_dir.glob("*.json")):
-        if defaults_file.name == "models.policy.json":
-            continue  # handled by apply-model-policy.py
+        if defaults_file.name in ("models.policy.json", "model-routing.json"):
+            continue  # models.policy.json handled by apply-model-policy.py; model-routing.json is reference only
         with open(defaults_file) as f:
             defaults = json.load(f)
         deep_merge(config, defaults)

@@ -1,33 +1,41 @@
 {
-  "$comment": "Model routing reference. Not merged into openclaw.json — used by setup-crons.sh and as documentation for the recommended model strategy. Prefer subscription models (Gemini CLI OAuth, OpenAI Codex OAuth) over API-billed models (Anthropic) to control costs.",
+  "$comment": "Model routing reference. Prefer subscription models over API-billed. Fallback chain: Gemini (sub) → Codex (sub) → OpenAI API → Sonnet (API) → Opus (API) → Ollama (local).",
+  "fallback_chain": [
+    { "model": "google/gemini-2.5-flash",               "billing": "subscription", "role": "primary" },
+    { "model": "openai-codex/gpt-5.4",                  "billing": "subscription", "role": "first fallback" },
+    { "model": "openai/gpt-5.4",                        "billing": "api",          "role": "second fallback" },
+    { "model": "anthropic/claude-sonnet-4-6",            "billing": "api",          "role": "third fallback" },
+    { "model": "anthropic/claude-opus-4-6",              "billing": "api",          "role": "precision fallback" },
+    { "model": "ollama/qwen2.5-coder:32b-instruct-q8_0","billing": "free",         "role": "local last resort" }
+  ],
   "strategy": {
     "main_chat": {
       "model": "google/gemini-2.5-flash",
-      "rationale": "Fast, cheap, good enough for general conversation and planning. Subscription via google-gemini-cli OAuth."
+      "rationale": "Fast, cheap, good for general conversation. Subscription via google-gemini-cli OAuth."
     },
     "coding": {
       "model": "openai-codex/gpt-5.4",
-      "rationale": "Strong coding model on subscription billing. Use /model gpt-5.4 in a Coding topic, or delegate to sub-agent."
+      "rationale": "Strong coding on subscription. Use /model gpt-5.4 in Coding topic."
     },
     "deep_research": {
       "model": "openai-codex/gpt-5.4",
-      "rationale": "Strong reasoning. Subscription via Codex OAuth."
+      "rationale": "Strong reasoning on subscription via Codex OAuth."
     },
     "crons_lightweight": {
       "model": "google/gemini-2.5-flash",
-      "rationale": "Nightly ops crons are lightweight checks. No need for frontier models."
+      "rationale": "Lightweight checks. No need for frontier models."
     },
     "crons_heavy": {
       "model": "openai-codex/gpt-5.4",
-      "rationale": "Memory synthesis and doc drift benefit from stronger reasoning. Subscription via Codex OAuth."
+      "rationale": "Memory synthesis and doc drift on subscription."
     },
     "precision": {
       "model": "anthropic/claude-opus-4-6",
-      "rationale": "Best-in-class reasoning (91% GPQA Diamond, 75% ARC-AGI-2). API-billed — use only for deep reasoning tasks where Codex falls short. Sonnet is not worth the API cost over Codex."
+      "rationale": "Best-in-class reasoning (91% GPQA Diamond). API-billed — use only when Codex falls short."
     },
     "local_fallback": {
       "model": "ollama/qwen3-coder:30b-a3b-q8_0",
-      "rationale": "Free, runs on host Metal GPU. Last resort when hosted providers are down. No web tools allowed."
+      "rationale": "Free, local Metal GPU. No web tools allowed."
     }
   },
   "topic_suggestions": {

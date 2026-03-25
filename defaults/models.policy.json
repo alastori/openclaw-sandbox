@@ -24,6 +24,20 @@
         "adopt": "notify"
       },
       {
+        "provider": "anthropic",
+        "pinned": "anthropic/claude-sonnet-4-6",
+        "alias": "Sonnet 4.6",
+        "familyRegex": "^claude-sonnet-4",
+        "adopt": "notify"
+      },
+      {
+        "provider": "anthropic",
+        "pinned": "anthropic/claude-opus-4-6",
+        "alias": "Opus 4.6",
+        "familyRegex": "^claude-opus-4",
+        "adopt": "manual"
+      },
+      {
         "provider": "ollama",
         "pinned": "ollama/qwen2.5-coder:32b-instruct-q8_0",
         "alias": "Qwen 2.5 Coder Local",
