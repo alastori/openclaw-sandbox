@@ -22,8 +22,8 @@
       "rationale": "Memory synthesis and doc drift benefit from stronger reasoning. Subscription via Codex OAuth."
     },
     "precision": {
-      "model": "anthropic/claude-sonnet-4-6",
-      "rationale": "Best-in-class for complex analysis. API-billed — use sparingly for tasks where Codex falls short."
+      "model": "anthropic/claude-opus-4-6",
+      "rationale": "Best-in-class reasoning (91% GPQA Diamond, 75% ARC-AGI-2). API-billed — use only for deep reasoning tasks where Codex falls short. Sonnet is not worth the API cost over Codex."
     },
     "local_fallback": {
       "model": "ollama/qwen3-coder:30b-a3b-q8_0",

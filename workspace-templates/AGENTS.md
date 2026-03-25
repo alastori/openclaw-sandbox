@@ -75,7 +75,7 @@ Each Telegram topic has its own session. Use `/model <alias>` to set the model f
 - `/model gemini` in General (fast, cheap for everyday chat — subscription)
 - `/model gpt-5.4` in Coding (strong for code generation — subscription via Codex OAuth)
 - `/model gpt-5.4` in Research (strong reasoning — subscription via Codex OAuth)
-- `/model sonnet` only when Codex isn't cutting it (API-billed, use sparingly)
+- `/model opus` only when Codex isn't cutting it (API-billed, best reasoning — use sparingly)
 
 The model sticks for that topic's session until changed.
 
@@ -100,7 +100,7 @@ Delegate to a sub-agent when a task would block your main conversation. The sub-
 
 - **High-volume tasks** (crons, digests, routine checks) → use subscription models (Gemini CLI OAuth, Codex OAuth) or local Ollama
 - **Heavy tasks** (coding, analysis, research) → use Codex OAuth (GPT-5.4, subscription)
-- **Precision tasks** (only when Codex falls short) → use Anthropic API models (Sonnet, Opus) — these are pay-per-token, use sparingly
+- **Precision tasks** (only when Codex falls short) → use Opus 4.6 (API-billed, best reasoning). Skip Sonnet — Codex matches it at subscription cost
 - **Never** use an API-billed model for a task a subscription model handles well
 
 ## External vs Internal
