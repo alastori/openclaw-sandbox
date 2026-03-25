@@ -119,24 +119,19 @@
     }
   },
   "gateway": {
-    "port": 18789,
+    "port": ${OPENCLAW_PORT},
     "mode": "local",
     "bind": "lan",
     "controlUi": {
       "enabled": true,
       "allowedOrigins": [
-        "http://localhost:18789",
-        "http://127.0.0.1:18789"
+        "http://localhost:${OPENCLAW_PORT}",
+        "http://127.0.0.1:${OPENCLAW_PORT}"
       ]
     },
     "auth": {
       "mode": "token",
-      "token": "op://${OP_VAULT}/${OP_ITEM}/gateway_token",
-      "rateLimit": {
-        "maxAttempts": 10,
-        "windowMs": 60000,
-        "lockoutMs": 300000
-      }
+      "token": "op://${OP_VAULT}/${OP_ITEM}/gateway_token"
     }
   },
   "plugins": {

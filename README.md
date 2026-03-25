@@ -2,6 +2,36 @@
 
 Run [OpenClaw](https://github.com/openclaw/openclaw) locally in a sandboxed Docker container on macOS Apple Silicon, powered by local models via [Ollama](https://ollama.com).
 
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Prerequisites](#prerequisites)
+- [Architecture](#architecture)
+- [Common Commands](#common-commands)
+- [Configuration](#configuration)
+  - [Config Variants](#config-variants)
+  - [Enforced Defaults](#enforced-defaults)
+  - [Workspace Templates](#workspace-templates)
+  - [Extensions](#extensions)
+  - [Docker Build Args](#docker-build-args)
+- [1Password Service Account Flow](#1password-service-account-flow)
+  - [Parallel Instances](#parallel-instances)
+  - [Fresh Clone Recovery](#fresh-clone-recovery)
+  - [Periodic Model Audit](#periodic-model-audit)
+- [Integrations](#integrations)
+  - [Connect a Telegram bot](#connect-a-telegram-bot)
+  - [Enable web access](#enable-web-access)
+  - [Add a ChatGPT fallback](#add-a-chatgpt-fallback)
+  - [Change the model](#change-the-model)
+  - [Ollama Concurrency](#ollama-concurrency)
+- [Recommended Models](#recommended-models)
+- [Security](#security)
+- [Troubleshooting](#troubleshooting)
+
+**Two setup paths:**
+- **Quick Start** (local only) -- Uses `templates/openclaw.json.minimal` with local Ollama models. No API keys needed.
+- **Full setup** (hosted models + Telegram) -- Uses 1Password to render secrets into `templates/openclaw.json.template`. See [1Password Service Account Flow](#1password-service-account-flow).
+
 ## Quick Start
 
 ```bash
@@ -111,6 +141,39 @@ The `defaults/` directory contains JSON overlays that are deep-merged into the r
 - `defaults/models.policy.json` — pinned primary/fallback model choices
 The current portable default policy is hosted-first: `google/gemini-2.5-flash` as primary, `openai-codex/gpt-5.4` (Codex OAuth subscription) as first fallback, `openai/gpt-5.4` (API key) as second fallback, and local Ollama models as last resort.
 
+### Workspace Templates
+
+The `workspace-templates/` directory contains seed files (`SOUL.md`, `USER.md`, `IDENTITY.md`, etc.) that are copied to `config/workspace/` on the first deploy. Users can customize them before running setup. They define the agent's personality, memory structure, and behavioral guidelines.
+
+### Extensions
+
+Optional add-ons that run on the host, not inside the container. Currently one extension exists:
+
+- **news-brief** -- RSS feeds summarized by Ollama, delivered via Telegram.
+
+To set up:
+
+```bash
+cp extensions/news-brief/config.example.json extensions/news-brief/config.json
+# Edit config.json: fill in telegram_chat_id, optionally customize feeds and model
+python3 extensions/news-brief/news-brief.py
+```
+
+### Docker Build Args
+
+The `Dockerfile` accepts build arguments to customize the image:
+
+| Arg | Default | Description |
+|-----|---------|-------------|
+| `OPENCLAW_VERSION` | `latest` | Pin to a specific OpenClaw release |
+| `INSTALL_GEMINI_CLI` | `true` | Set to `false` to skip Gemini CLI installation |
+
+Example:
+
+```bash
+OPENCLAW_VERSION=2026.3.23-2 docker compose build
+```
+
 **Model auth strategy:** Gemini uses the bundled `google` plugin with `google-gemini-cli` OAuth (free tier); OpenAI prefers Codex OAuth (subscription) with API key as fallback; Anthropic uses API key only (subscription OAuth is banned for third-party tools since Jan 2026). After rebuilding, run the interactive OAuth flows:
 
 ```bash
@@ -200,18 +263,15 @@ OPENCLAW_PORT=18790
 ```
 
 This repo does not support multiple independent users from a single checkout because `config/` and `workspace/` are shared within one repo directory.
-`./setup.sh` now also respects `OPENCLAW_PORT` for checkouts that start from `templates/openclaw.json.minimal`, not just the secrets-rendered path.
-Validated on 2026-03-11 with a second checkout on port `18790` (default provider is now `google/gemini-2.5-flash`).
+`./setup.sh` also respects `OPENCLAW_PORT` for checkouts that start from `templates/openclaw.json.minimal`, not just the secrets-rendered path.
 For routine per-instance operations, prefer `./oc ...` over raw `docker compose ...`; the wrapper loads `.env.instance.local` automatically.
 If two parallel instances share the same Telegram bot token, only one should poll Telegram at a time. For smoke tests or temporary side-by-side instances, disable Telegram in the secondary instance or give it a different bot token.
 
 ### Fresh Clone Recovery
 
-Validated on 2026-03-11 from a clean clone under `/Users/...`.
-
 ```bash
-git clone https://github.com/alastori/openclaw-sandbox.git ~/GitHub/alastori/openclaw-sandbox-fresh
-cd ~/GitHub/alastori/openclaw-sandbox-fresh
+git clone https://github.com/alastori/openclaw-sandbox.git
+cd openclaw-sandbox
 bash ./scripts/bootstrap-secrets-local.sh
 bash ./scripts/render-secrets-up.sh
 ./oc health
@@ -219,10 +279,7 @@ bash ./scripts/render-secrets-up.sh
 
 If you already have a valid `.env.secrets.local` from another checkout, you can copy that file into the new clone instead of re-running the bootstrap step.
 
-Validated on 2026-03-11 from the main checkout after a config reset:
-- soft-deleting the runtime `config/` contents to `~/Desktop/_TRASH/...` and re-running `bash ./scripts/render-secrets-up.sh` is a safe way to force a truly fresh local state
-- the first probe immediately after container start can fail with a transient gateway websocket close if the gateway restarts once during boot; rerun the probe after `./oc health` is clean
-- after that rebuild, the first successful live turn in the main checkout used the default provider
+To force a truly fresh local state, remove the runtime `config/` contents and re-run `bash ./scripts/render-secrets-up.sh`. The first probe immediately after container start can fail with a transient gateway websocket close if the gateway restarts once during boot; rerun the probe after `./oc health` is clean.
 
 ### Periodic Model Audit
 
@@ -260,16 +317,10 @@ docker compose restart
 docker compose exec -T openclaw-gateway openclaw pairing approve telegram YOUR_CODE
 ```
 
-If your shell runner does not preserve `cd` between commands, use the absolute wrapper path instead:
+If your shell runner does not preserve `cd` between commands, run the `cd` and approval in the same command:
 
 ```bash
-~/GitHub/alastori/openclaw-sandbox/oc pairing approve telegram YOUR_CODE
-```
-
-or run the `cd` and approval in the same command:
-
-```bash
-cd ~/GitHub/alastori/openclaw-sandbox && docker compose exec -T openclaw-gateway openclaw pairing approve telegram YOUR_CODE
+cd /path/to/openclaw-sandbox && ./oc pairing approve telegram YOUR_CODE
 ```
 
 A DM-only setup may still log a startup warning if `groupPolicy` is set to `"allowlist"` without any group allowlist entries. That is expected and harmless if you do not plan to use the bot in group chats.
@@ -343,6 +394,8 @@ docker compose exec openclaw-gateway openclaw models fallbacks add github-copilo
 
 Edit `config/openclaw.json`, update the model ID under `models.providers.ollama.models` and `agents.defaults.model.primary`, then restart.
 
+> **Note:** If you use the 1Password/secrets flow (`scripts/render-secrets-up.sh`), edit `templates/openclaw.json.template` or `defaults/models.policy.json` instead, since `config/openclaw.json` is regenerated on each deploy and your manual changes will be overwritten.
+
 > **Tip:** Also set `agents.defaults.contextTokens` to match your model's context window (minus ~15K headroom for system prompt and tool definitions). For example, a 65K context model should use `"contextTokens": 50000`.
 
 ### Ollama Concurrency
@@ -379,8 +432,6 @@ The Docker container enforces:
 - **Gateway auth rate limiting** -- `gateway.auth.rateLimit` defaults to `10` attempts per `60s`, with a `5m` lockout
 - **Private state directories** -- `setup.sh` and `scripts/render-secrets-up.sh` force `config/` and `workspace/` to mode `700`
 - **Elevated tools disabled by default** -- shell/write escalation is off unless you explicitly opt back in with a narrow allowlist
-
-Validated on 2026-03-11: `openclaw security audit --deep` returned `0 critical`, `0 warn`, and only one expected info finding for Telegram DM-only group handling.
 
 ## Troubleshooting
 

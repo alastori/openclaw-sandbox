@@ -91,7 +91,7 @@ echo ""
 echo "[5/7] Configuring OpenClaw..."
 
 if [ ! -f "$CONFIG_DIR/openclaw.json" ]; then
-    MINIMAL_TEMPLATE="$ROOT_DIR/templates/openclaw.json.minimal"
+    MINIMAL_TEMPLATE="$SCRIPT_DIR/templates/openclaw.json.minimal"
     if [ ! -f "$MINIMAL_TEMPLATE" ]; then
         echo "ERROR: templates/openclaw.json.minimal not found. Re-clone the repo."
         exit 1

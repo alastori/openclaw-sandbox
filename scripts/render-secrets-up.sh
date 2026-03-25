@@ -54,7 +54,9 @@ chmod 600 "$config_tmp"
 
 # Substitute non-secret env vars that op inject doesn't handle.
 : "${TELEGRAM_BOT_NAME:=my_openclaw_bot}"
+: "${OPENCLAW_PORT:=18789}"
 sed -i.bak "s|\${TELEGRAM_BOT_NAME}|${TELEGRAM_BOT_NAME}|g" "$config_tmp"
+sed -i.bak "s|\${OPENCLAW_PORT}|${OPENCLAW_PORT}|g" "$config_tmp"
 rm -f "$config_tmp.bak"
 
 python3 scripts/apply-model-policy.py "$config_tmp" "$MODEL_POLICY_FILE"

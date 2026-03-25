@@ -40,6 +40,7 @@ scripts/
   init-workspace.sh                 Copy workspace-templates/ into config/workspace/ (first run only)
   bootstrap-secrets-local.sh        Create 1Password service account token
   check-models.sh                   Probe configured models and audit policy
+  load-local-env.sh                 Source .env.instance.local and .env.secrets.local into the shell
 
 config/                             gitignored — runtime state (sessions, credentials, live config)
 workspace/                          gitignored — agent working directory
@@ -78,12 +79,9 @@ workspace/                          gitignored — agent working directory
 - The default 1Password vault name is `AI-Agents`; override `OP_VAULT` if you use a different vault
 - Parallel instances are supported via separate checkouts, each with its own `.env.instance.local`, `config/`, and `workspace/`
 - `setup.sh` now rewrites the copied `templates/openclaw.json.minimal` to the checkout's `OPENCLAW_PORT`, so manual bootstrap works on non-default ports too
-- Validated on 2026-03-11: a second checkout on port `18790` started cleanly and the first fresh turn used `anthropic/claude-sonnet-4-6` by default (now default is `google/gemini-2.5-flash`)
-- Also validated on 2026-03-11 in the main checkout after soft-deleting the runtime `config/` contents to `~/Desktop/_TRASH/...`: rerendering from secrets rebuilt a clean session store
 - The very first probe right after a rebuild can hit a transient `gateway closed (1006 abnormal closure)` if the gateway restarts once during boot; rerun after `./oc health` is clean before treating it as a real failure
-- Validated on 2026-03-11 after hardening: `openclaw security audit --deep` returned `0 critical`, `0 warn`, and only one expected info finding for Telegram DM-only group handling
 - Prefer `./oc ...` over raw `docker compose ...` for per-instance operations because the wrapper loads `.env.instance.local` automatically
-- For Telegram pairing approval, some shell runners do not preserve `cd` between commands; use the absolute wrapper path (`~/GitHub/alastori/openclaw-sandbox/oc ...`) or `cd ... && ...` in a single shell invocation
+- For Telegram pairing approval, some shell runners do not preserve `cd` between commands; use `cd /path/to/openclaw-sandbox && ./oc ...` in a single shell invocation
 - Parallel instances must not share the same Telegram bot token with polling enabled unless you deliberately want them competing for the same updates
 - **Always use `docker compose --env-file .runtime/openclaw.env up -d`** (or `bash ./scripts/render-secrets-up.sh`) instead of bare `docker compose up -d`; the env file carries the API keys and without it the container starts with empty credentials
 - `ollama/qwen2.5-coder:32b-instruct-q8_0` is the last-resort fallback (after `openai-codex` and `openai` API); reached via `host.docker.internal:11434` and works when all hosted providers are down
