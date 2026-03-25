@@ -1,0 +1,34 @@
+{
+  "$comment": "Model routing reference. Not merged into openclaw.json — used by setup-crons.sh and as documentation for the recommended model strategy.",
+  "strategy": {
+    "main_chat": {
+      "model": "google/gemini-2.5-flash",
+      "rationale": "Fast, cheap, good enough for general conversation and planning. Subscription via google-gemini-cli OAuth."
+    },
+    "coding": {
+      "model": "anthropic/claude-sonnet-4-6",
+      "rationale": "Best coding model. Use /model sonnet in a Coding topic, or delegate to sub-agent."
+    },
+    "deep_research": {
+      "model": "openai-codex/gpt-5.4",
+      "rationale": "Strong reasoning. Subscription via Codex OAuth."
+    },
+    "crons_lightweight": {
+      "model": "google/gemini-2.5-flash",
+      "rationale": "Nightly ops crons are lightweight checks. No need for frontier models."
+    },
+    "crons_heavy": {
+      "model": "anthropic/claude-sonnet-4-6",
+      "rationale": "Memory synthesis and doc drift benefit from stronger reasoning."
+    },
+    "local_fallback": {
+      "model": "ollama/qwen3-coder:30b-a3b-q8_0",
+      "rationale": "Free, runs on host Metal GPU. Last resort when hosted providers are down. No web tools allowed."
+    }
+  },
+  "topic_suggestions": {
+    "General": "google/gemini-2.5-flash",
+    "Coding": "anthropic/claude-sonnet-4-6",
+    "Research": "openai-codex/gpt-5.4"
+  }
+}

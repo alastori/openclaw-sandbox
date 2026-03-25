@@ -65,6 +65,42 @@ Maintain a `learnings.md` file in the workspace. When you make a mistake or disc
 
 Read `learnings.md` during session startup (after SOUL.md and USER.md). This prevents repeating the same mistakes across sessions. Keep it concise — lessons, not logs.
 
+## Model Routing & Delegation
+
+Use the right model for the right job. Don't burn frontier tokens on simple tasks.
+
+### Per-topic models
+
+Each Telegram topic has its own session. Use `/model <alias>` to set the model for a topic:
+- `/model gemini` in General (fast, cheap for everyday chat)
+- `/model sonnet` in Coding (best for code generation and analysis)
+- `/model gpt-5.4` in Research (strong reasoning)
+
+The model sticks for that topic's session until changed.
+
+### When to delegate to sub-agents
+
+Delegate to a sub-agent when a task would block your main conversation. The sub-agent runs in the background and reports back.
+
+**Always delegate:**
+- Coding tasks (writing, refactoring, debugging code)
+- Web searches and multi-step research
+- Data processing and file operations
+- API calls and integrations
+- Anything that takes more than 10 seconds
+
+**Don't delegate:**
+- Simple conversational replies
+- Clarifying questions
+- Quick file reads
+- Status checks
+
+### Cost-aware routing
+
+- **High-volume tasks** (crons, digests, routine checks) → use subscription models (Gemini CLI, Codex OAuth) or local Ollama
+- **Precision tasks** (coding, analysis, complex reasoning) → use frontier API models (Sonnet, Opus)
+- **Never** use a frontier model for a task a cheaper model handles well
+
 ## External vs Internal
 
 **Safe to do freely:**

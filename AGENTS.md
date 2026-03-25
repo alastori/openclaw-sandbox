@@ -23,6 +23,7 @@ defaults/                           Enforced config overlays (merged at deploy t
   security.json                     Elevated tools off, loop detection, rate limits
   logging.json                      File logging, API key redaction patterns
   governance.json                   Context tokens, compaction mode
+  model-routing.json                Model routing reference: task → model mapping, topic suggestions
 
 workspace-templates/                Tracked seed files copied to config/workspace/ on first deploy
   SOUL.md, USER.md, IDENTITY.md, AGENTS.md, BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md

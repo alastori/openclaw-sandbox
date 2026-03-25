@@ -20,7 +20,8 @@ if [[ "$CHAT_ID" == "--telegram-chat-id" ]]; then
 fi
 
 OC="$ROOT_DIR/oc"
-MODEL="google/gemini-2.5-flash"
+MODEL_LIGHT="google/gemini-2.5-flash"   # Lightweight checks (update, security audit, digest)
+MODEL_HEAVY="anthropic/claude-sonnet-4-6" # Reasoning-heavy tasks (doc drift, memory synthesis)
 TZ="America/New_York"
 
 existing=$("$OC" cron list 2>/dev/null | tail -n +2 || true)
@@ -41,31 +42,31 @@ echo "Setting up default cron jobs..."
 
 create_if_missing "nightly-update-check" \
   --cron "0 2 * * *" --tz "$TZ" \
-  --model "$MODEL" --thinking off --timeout-seconds 180 \
+  --model "$MODEL_LIGHT" --thinking off --timeout-seconds 180 \
   --no-deliver \
   --message "Check if there is a newer version of OpenClaw available. Run: openclaw update status. Then write your findings to the notification buffer by running: python3 /home/node/extensions/notifications/buffer.py --tier low --title 'Update Check' --body '<your one-line summary>' --source nightly-update-check"
 
 create_if_missing "nightly-security-audit" \
   --cron "30 2 * * *" --tz "$TZ" \
-  --model "$MODEL" --thinking off --timeout-seconds 180 \
+  --model "$MODEL_LIGHT" --thinking off --timeout-seconds 180 \
   --no-deliver \
   --message "Run a security audit: openclaw security audit --deep. Before reporting, read workspace/learnings.md for known acceptable findings (ClawSec shell patterns, 0.0.0.0 binding, Ollama sandbox warnings). Exclude those from your report. For genuinely new findings, write to the notification buffer: python3 /home/node/extensions/notifications/buffer.py --tier low --title 'Security Audit' --body '<your summary of NEW findings only>' --source nightly-security-audit. Use --tier critical only for genuinely new critical issues. If everything is known/acceptable, buffer a brief all-clear at tier low."
 
 create_if_missing "morning-log-review" \
   --cron "0 7 * * *" --tz "$TZ" \
-  --model "$MODEL" --thinking off --timeout-seconds 300 \
+  --model "$MODEL_LIGHT" --thinking off --timeout-seconds 300 \
   --no-deliver \
   --message "Review the gateway logs from the last 12 hours. First read workspace/learnings.md for known acceptable findings — do not re-report those. Look for genuinely new errors, warnings, failed cron runs, model failures. For each new issue, if you can identify the root cause, append a lesson to workspace/learnings.md with the date and what went wrong. Then write your summary to the notification buffer: python3 /home/node/extensions/notifications/buffer.py --tier low --title 'Log Review' --body '<your summary of NEW issues only>' --source morning-log-review. Use --tier medium for serious new issues. If nothing new, buffer a brief all-clear at tier low."
 
 create_if_missing "nightly-doc-drift" \
   --cron "0 3 * * *" --tz "$TZ" \
-  --model "$MODEL" --thinking off --timeout-seconds 300 \
+  --model "$MODEL_HEAVY" --thinking off --timeout-seconds 300 \
   --no-deliver \
   --message "Compare the workspace documentation files (TOOLS.md, AGENTS.md, IDENTITY.md, USER.md) against the actual system state. Check: Are configured models documented? Are any skills or tools mentioned that no longer exist? Are there undocumented features? Write a summary to the notification buffer: python3 /home/node/extensions/notifications/buffer.py --tier low --title 'Doc Drift' --body '<your findings>' --source nightly-doc-drift. Only report if you found actual gaps."
 
 create_if_missing "weekly-memory-synthesis" \
   --cron "40 3 * * 0" --tz "$TZ" \
-  --model "$MODEL" --thinking off --timeout-seconds 600 \
+  --model "$MODEL_HEAVY" --thinking off --timeout-seconds 600 \
   --no-deliver \
   --message "Review all daily memory files from the past week (memory/YYYY-MM-DD.md). Identify significant events, lessons, decisions, user preferences, and recurring themes worth keeping long-term. Update MEMORY.md with distilled insights — add new entries and remove anything stale or outdated. Also review learnings.md and remove any lessons that are no longer relevant. Write a summary to the notification buffer: python3 /home/node/extensions/notifications/buffer.py --tier low --title 'Memory Synthesis' --body '<brief summary of what was added/removed>' --source weekly-memory-synthesis"
 
@@ -74,7 +75,7 @@ create_if_missing "weekly-memory-synthesis" \
 if [[ -n "$CHAT_ID" ]]; then
   create_if_missing "digest-morning" \
     --cron "15 7 * * *" --tz "$TZ" \
-    --model "$MODEL" --thinking off --timeout-seconds 60 \
+    --model "$MODEL_LIGHT" --thinking off --timeout-seconds 60 \
     --no-deliver \
     --message "Execute this command exactly: python3 /home/node/extensions/notifications/digest.py --all. The script handles Telegram delivery on its own. Just run it."
 else

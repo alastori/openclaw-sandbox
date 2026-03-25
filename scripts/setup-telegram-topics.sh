@@ -138,14 +138,20 @@ else:
   echo "$topic_id"
 }
 
-OPS_TOPIC=$(create_topic "Ops" 16766590)      # 0xFFD67E — amber
-ALERTS_TOPIC=$(create_topic "Alerts" 16749490) # 0xFF6347 — red-ish
+OPS_TOPIC=$(create_topic "Ops" 16766590)          # amber
+ALERTS_TOPIC=$(create_topic "Alerts" 16749490)    # red
+CODING_TOPIC=$(create_topic "Coding" 13338331)    # green
+RESEARCH_TOPIC=$(create_topic "Research" 9367192)  # blue
 
-if [[ -z "$OPS_TOPIC" || -z "$ALERTS_TOPIC" || "$OPS_TOPIC" == *"ERROR"* || "$ALERTS_TOPIC" == *"ERROR"* ]]; then
+if [[ -z "$OPS_TOPIC" || -z "$ALERTS_TOPIC" ]]; then
   echo ""
   echo "Topic creation failed. The bot needs Admin rights with 'Manage Topics' permission."
   exit 1
 fi
+
+# Coding and Research are optional — don't fail if they already exist
+CODING_TOPIC="${CODING_TOPIC:-}"
+RESEARCH_TOPIC="${RESEARCH_TOPIC:-}"
 
 # --- Update notification config ---
 echo ""
@@ -194,9 +200,21 @@ else:
 fi
 
 echo ""
-echo "Done! Your notification topics are set up:"
-echo "  Ops:    topic_id=$OPS_TOPIC (routine digests)"
-echo "  Alerts: topic_id=$ALERTS_TOPIC (critical, immediate)"
+echo "Done! Topics are set up:"
+echo ""
+echo "  Notification routing:"
+echo "    Ops:      topic_id=$OPS_TOPIC (routine digests)"
+echo "    Alerts:   topic_id=$ALERTS_TOPIC (critical, immediate)"
+echo ""
+echo "  Conversation topics:"
+echo "    General:  (default topic, already exists)"
+[[ -n "$CODING_TOPIC" ]] && echo "    Coding:   topic_id=$CODING_TOPIC — use /model sonnet for coding tasks"
+[[ -n "$RESEARCH_TOPIC" ]] && echo "    Research: topic_id=$RESEARCH_TOPIC — use /model gpt-5.4 for deep research"
 echo ""
 echo "Restart the gateway to pick up the group allowlist change:"
 echo "  docker compose restart"
+echo ""
+echo "Tip: In each topic, send /model <alias> to set the preferred model:"
+echo "  General:  /model gemini  (fast, everyday chat)"
+echo "  Coding:   /model sonnet  (best for code)"
+echo "  Research: /model gpt-5.4 (strong reasoning)"
