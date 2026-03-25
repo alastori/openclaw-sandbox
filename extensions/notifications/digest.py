@@ -132,14 +132,17 @@ def format_digest(entries_by_tier):
     return "\n".join(lines).strip()
 
 
-def send_telegram(text: str, chat_id: str, bot_token: str) -> int:
+def send_telegram(text: str, chat_id: str, bot_token: str, topic_id=None) -> int:
     if len(text) > 4000:
         text = text[:3997] + "..."
-    payload = json.dumps({
+    msg = {
         "chat_id": int(chat_id),
         "text": text,
         "disable_web_page_preview": True,
-    }).encode()
+    }
+    if topic_id:
+        msg["message_thread_id"] = int(topic_id)
+    payload = json.dumps(msg).encode()
     req = Request(
         f"https://api.telegram.org/bot{bot_token}/sendMessage",
         data=payload,
@@ -185,15 +188,41 @@ def main():
         return 0
 
     bot_token = get_bot_token()
-    status = send_telegram(message, config["telegram_chat_id"], bot_token)
+    chat_id = config["telegram_chat_id"]
+    topics = config.get("topics", {})
+    tier_configs = config.get("tiers", {})
+
+    # Group entries by target topic for separate delivery
+    by_topic = {}
+    for tier in tiers:
+        entries = entries_by_tier.get(tier, [])
+        if not entries:
+            continue
+        topic_name = tier_configs.get(tier, {}).get("topic")
+        topic_id = topics.get(topic_name) if topic_name else None
+        by_topic.setdefault(topic_id, {})[tier] = entries
+
+    if not by_topic:
+        print("No pending notifications.")
+        return 0
 
     all_entries = [e for entries in entries_by_tier.values() for e in entries]
-    if status == 200:
+    success = True
+
+    for topic_id, tier_entries in by_topic.items():
+        msg = format_digest(tier_entries)
+        if not msg:
+            continue
+        status = send_telegram(msg, chat_id, bot_token, topic_id=topic_id)
+        if status != 200:
+            print(f"Telegram delivery failed (HTTP {status}, topic={topic_id}). Buffer NOT cleared.")
+            success = False
+
+    if success:
         cleared = clear_buffer(all_entries)
-        print(f"Delivered digest ({len(message)} chars), cleared {cleared} entries.")
+        print(f"Delivered digest ({len(all_entries)} entries), cleared {cleared} files.")
         return 0
     else:
-        print(f"Telegram delivery failed (HTTP {status}). Buffer NOT cleared.")
         return 1
 
 

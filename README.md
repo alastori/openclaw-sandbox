@@ -328,6 +328,73 @@ Do not run two instances with the same Telegram bot token enabled unless you exp
 
 </details>
 
+### Telegram topics (recommended)
+
+<details>
+<summary>Organize conversations with topic threads</summary>
+
+Instead of one flat DM, create a Telegram group with **Topics** enabled. Each topic gets its own OpenClaw session and context window — better memory, no topic cross-contamination, and cleaner notifications.
+
+**Setup:**
+
+1. In Telegram, create a new Group. Add only yourself and your bot.
+2. Go to Group Settings → Topics → Enable.
+3. Create topics. Suggested defaults:
+
+| Topic | Purpose |
+|-------|---------|
+| General | Main conversation with the agent |
+| Ops | Nightly cron digests, routine reports |
+| Alerts | Critical-only notifications |
+
+4. Get the group chat ID and topic IDs. Send a message in each topic, then check:
+
+```bash
+./oc directory self telegram
+```
+
+Or use the Telegram Bot API:
+
+```bash
+curl -s "https://api.telegram.org/bot<TOKEN>/getUpdates" | python3 -m json.tool
+```
+
+Look for `message.chat.id` (group ID, negative number) and `message.message_thread_id` (topic ID).
+
+5. Update `config/openclaw.json` (or your template) to allow the group:
+
+```json
+"channels": {
+  "telegram": {
+    "groupPolicy": "allowlist",
+    "groupAllowFrom": ["<GROUP_CHAT_ID>"]
+  }
+}
+```
+
+6. Update `extensions/notifications/config.json` with topic IDs:
+
+```json
+{
+  "telegram_chat_id": "<GROUP_CHAT_ID>",
+  "topics": {
+    "ops": <OPS_TOPIC_ID>,
+    "alerts": <ALERTS_TOPIC_ID>
+  },
+  "tiers": {
+    "critical": { "delivery": "immediate", "topic": "alerts" },
+    "medium":   { "delivery": "digest", "topic": "ops" },
+    "low":      { "delivery": "digest", "topic": "ops" }
+  }
+}
+```
+
+Critical notifications go to `Alerts`, routine digests go to `Ops`, and your main conversation stays in `General`.
+
+**Why this matters:** Without topics, every cron output, news brief, and alert lands in the same chat as your conversations. With topics, you only check `Alerts` for urgent items and `Ops` when you feel like it.
+
+</details>
+
 ### Enable web access
 
 Web fetching (`web_fetch`) is enabled by default. There are currently two tracked variants:
