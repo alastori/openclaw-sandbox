@@ -11,10 +11,12 @@ setup.sh                            One-command setup script
 oc                                  Host-side shortcut: ./oc <cmd> = docker compose exec ... openclaw <cmd>
 .env.instance.local.example         Example per-checkout port/project config
 .env.secrets.example                Secret reference map for the current backend
+.env.secrets.local.example          Example local bootstrap file (SA token, vault, item)
 
 templates/
   openclaw.json.template            Runtime config template (op:// refs + ${TELEGRAM_BOT_NAME})
   openclaw.json.minimal             Minimal local-only config (no secrets, no Telegram)
+  secrets-mapping.yaml.template     Per-user secret reference map (copy to config/secrets-mapping.yaml)
 
 defaults/                           Enforced config overlays (merged at deploy time)
   models.policy.json                Pinned hosted-model primary/fallback choices
@@ -22,9 +24,11 @@ defaults/                           Enforced config overlays (merged at deploy t
   logging.json                      File logging, API key redaction patterns
   governance.json                   Context tokens, compaction mode
   model-routing.json                Model routing reference: task -> model mapping, topic suggestions
+  secrets-backend.json              Pluggable credential backend definitions (1Password, Vault, AWS SM, Keychain, env)
+  prompt-guidelines.md              Model-neutral prompt style guide (Claude, GPT, Gemini)
 
 workspace-templates/                Tracked seed files copied to config/workspace/ on first deploy
-  SOUL.md, USER.md, IDENTITY.md, AGENTS.md, BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md
+  SOUL.md, USER.md, IDENTITY.md, AGENTS.md, BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md, learnings.md
 
 extensions/                         Optional add-ons, mounted read-only at /home/node/extensions
   notifications/                    Notification buffer + digest system with Telegram topic routing
@@ -37,6 +41,9 @@ extensions/                         Optional add-ons, mounted read-only at /home
     cron-news-brief.sh              Thin wrapper for launchd/cronctl
   backup/
     backup.sh                       Git auto-commit + push tracked changes
+  doc-watch/
+    doc-watch.py                    Monitor external documentation URLs for changes
+    README.md                       Extension setup and configuration
 
 scripts/
   render-secrets-up.sh              Pipeline: op inject -> model policy -> defaults -> workspace init -> deploy
@@ -48,9 +55,12 @@ scripts/
   bootstrap-secrets-local.sh        Create 1Password service account token
   check-models.sh                   Probe configured models and audit policy
   load-local-env.sh                 Source .env.instance.local and .env.secrets.local into the shell
+  resolve-secrets.py                Pluggable secret resolver (1Password, Vault, AWS SM, Keychain, env)
 
 config/                             gitignored -- runtime state (sessions, credentials, live config)
 workspace/                          gitignored -- agent working directory
+.runtime/                           gitignored -- rendered secrets (.env for docker compose)
+logs/                               gitignored -- extension output logs
 ```
 
 ## Volume Mounts
@@ -59,6 +69,7 @@ workspace/                          gitignored -- agent working directory
 |-----------|---------------|---------|
 | `./config/` | `/home/node/.openclaw` | OpenClaw home (config, credentials, sessions) |
 | `./workspace/` | `/home/node/workspace` | Agent working directory |
+| `./extensions/` | `/home/node/extensions` | Extensions (read-only) |
 
 ### Model Chain & Auth
 

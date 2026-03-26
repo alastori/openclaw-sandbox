@@ -373,6 +373,8 @@ Is this an instruction for agent behavior?
 | Known acceptable findings | `workspace-templates/learnings.md`          | —                      |
 | Extension configuration   | `extensions/*/config.example.json`          | README.md              |
 | Authoring conventions     | `DOC_AUTHORING_GUIDE.md`                    | —                      |
+| Credential backend definitions | `defaults/secrets-backend.json`        | AGENTS.md, README.md   |
+| Secret mapping template   | `templates/secrets-mapping.yaml.template`   | README.md              |
 | Setup/deploy workflow     | README.md                                   | AGENTS.md (link)       |
 | Common commands           | README.md § Common Commands                 | AGENTS.md (link)       |
 

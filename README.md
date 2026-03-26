@@ -81,6 +81,8 @@ macOS Host
 
 The LLM runs natively on the host for full Metal GPU acceleration. The Docker container runs the OpenClaw gateway with Node.js 22, Python 3, cron, and Gemini CLI available for agent tasks, capped at 2 GB RAM and 2 CPU cores.
 
+> **Note:** `docker-compose.yml` aliases `GEMINI_API_KEY` as `GOOGLE_API_KEY` for Google SDK compatibility.
+
 ## Common Commands
 
 The `./oc` wrapper script is a checkout-scoped shortcut for `docker compose exec openclaw-gateway openclaw`:
@@ -139,6 +141,8 @@ The `defaults/` directory contains JSON overlays that are deep-merged into the r
 - `defaults/logging.json` -- file logging path, API key redaction patterns
 - `defaults/governance.json` -- context tokens, compaction mode
 - `defaults/models.policy.json` -- pinned primary/fallback model choices
+- `defaults/secrets-backend.json` -- pluggable credential backend definitions (1Password, Vault, AWS SM, Keychain, env)
+- `defaults/prompt-guidelines.md` -- model-neutral prompt style guide for Claude, GPT, and Gemini
 
 The model policy is defined in `defaults/models.policy.json` -- subscription models first (Gemini CLI OAuth, Codex OAuth), then API-billed fallbacks, local Ollama as last resort.
 
@@ -243,6 +247,8 @@ Files involved:
 - `scripts/init-workspace.sh` -- copies `workspace-templates/` into `config/workspace/` on first run
 - `templates/openclaw.json.template` -- tracked config template with 1Password secret references
 - `.runtime/openclaw.env` -- generated runtime env file, untracked
+- `scripts/resolve-secrets.py` -- pluggable secret resolver, used by `render-secrets-up.sh` when `config/secrets-mapping.yaml` exists
+- `templates/secrets-mapping.yaml.template` -- tracked secret mapping seed; copy to `config/secrets-mapping.yaml`
 
 The bootstrap script writes shell-safe values into `.env.secrets.local`. This matters for names with spaces, such as `OP_ITEM=OpenClaw Sandbox`.
 Use `bash ./scripts/...` to run the helper scripts unless you've explicitly marked them executable in your local checkout.
@@ -299,6 +305,26 @@ bash ./scripts/check-models.sh
 The script reads the rendered config plus `.runtime/openclaw.env`, probes the configured models directly against their providers, and reports `required` versus `optional` models. It also compares `models.policy.json` against the current provider catalogs and reports whether newer compatible hosted models are available.
 Use `bash ./scripts/check-models.sh --adopt` to opt in to newer provider models. That only updates `models.policy.json` when the newer model is confirmed by both the provider catalog and the local OpenClaw catalog; rerun `bash ./scripts/render-secrets-up.sh` afterward to apply the new pins.
 OAuth/profile-backed providers such as `github-copilot` currently report as `not_checked` because they are not driven by direct API-key requests from this script.
+
+### Credential Management
+
+The repo supports two credential resolution paths:
+
+- **New (pluggable resolver):** `scripts/resolve-secrets.py` reads `config/secrets-mapping.yaml` and resolves references against the configured backend. `render-secrets-up.sh` calls it automatically when the mapping file exists.
+- **Legacy (`op inject`):** If no mapping file is present, `render-secrets-up.sh` falls back to direct `op inject` against the template, as before.
+
+Supported backends: **1Password**, **HashiCorp Vault**, **AWS Secrets Manager**, **macOS Keychain**, **environment variables**. Backend definitions live in `defaults/secrets-backend.json`.
+
+To set up the pluggable resolver:
+
+```bash
+cp templates/secrets-mapping.yaml.template config/secrets-mapping.yaml
+# Edit config/secrets-mapping.yaml: choose a backend and fill in secret references
+python3 scripts/resolve-secrets.py --validate   # dry-run check
+bash scripts/render-secrets-up.sh               # deploy as usual
+```
+
+Environment variable fallback is always available: any key listed in `.env.secrets.example` can be set directly in the shell, and the resolver will prefer it over the mapping file entry.
 
 ## Integrations
 
