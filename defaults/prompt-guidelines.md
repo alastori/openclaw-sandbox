@@ -5,9 +5,23 @@ Not loaded by OpenClaw — this is documentation for humans and for crons
 that optimize or audit workspace prompts.
 
 Sources:
-- Anthropic: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
-- OpenAI: https://developers.openai.com/api/docs/guides/prompt-guidance
-- Google: https://ai.google.dev/gemini-api/docs/prompting-strategies
+
+Anthropic (Claude):
+- Prompting best practices: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+- What's new in Claude 4.6: https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-6
+- Migration guide (4.5 → 4.6): https://platform.claude.com/docs/en/about-claude/models/migration-guide
+- Interactive prompt tutorial: https://github.com/anthropics/prompt-eng-interactive-tutorial
+- Prompt engineering overview: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview
+
+OpenAI (GPT-5.4):
+- Prompt guidance for GPT-5.4: https://developers.openai.com/api/docs/guides/prompt-guidance
+- GPT-5 prompting guide (cookbook): https://cookbook.openai.com/examples/gpt-5/gpt-5_prompting_guide
+- Codex prompting guide: https://developers.openai.com/cookbook/examples/gpt-5/codex_prompting_guide
+- Prompt engineering guide: https://platform.openai.com/docs/guides/prompt-engineering
+
+Google (Gemini):
+- Prompting strategies: https://ai.google.dev/gemini-api/docs/prompting-strategies
+- Gemini 3 prompting guide (Vertex AI): https://docs.cloud.google.com/vertex-ai/generative-ai/docs/start/gemini-3-prompting-guide
 
 ## Universal Principles (work across all models)
 
