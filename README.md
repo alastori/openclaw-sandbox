@@ -393,18 +393,21 @@ curl -s "https://api.telegram.org/bot<TOKEN>/getUpdates" | python3 -m json.tool
 
 Look for `message.chat.id` (group ID, negative number) and `message.message_thread_id` (topic ID).
 
-5. Update `config/openclaw.json` (or your template) to allow the group:
+5. **Disable privacy mode** so the bot sees all messages (not just @mentions):
+   - In Telegram, message `@BotFather` → `/setprivacy` → select your bot → `Disable`
+   - **Remove and re-add the bot** to the group (Telegram only applies the change on re-join)
 
-```json
-"channels": {
-  "telegram": {
-    "groupPolicy": "allowlist",
-    "groupAllowFrom": ["<GROUP_CHAT_ID>"]
-  }
-}
+6. Add the group ID to `.env.instance.local`:
+
+```bash
+TELEGRAM_GROUP_ID=<GROUP_CHAT_ID>
 ```
 
-6. Update `extensions/notifications/config.json` with topic IDs:
+Then re-render: `bash scripts/render-secrets-up.sh`
+
+The template sets `groupPolicy: "open"` and `requireMention: false` so the bot responds to all messages in the group without needing @mentions. This is safe for personal/small-team groups where you control membership.
+
+7. Update `extensions/notifications/config.json` with topic IDs:
 
 ```json
 {
