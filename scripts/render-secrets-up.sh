@@ -47,15 +47,6 @@ case "$ROOT_DIR" in
     ;;
 esac
 
-if ! command -v op >/dev/null 2>&1; then
-  echo "error: 1Password CLI (op) is not installed" >&2
-  exit 1
-fi
-
-: "${OP_SERVICE_ACCOUNT_TOKEN:?Set OP_SERVICE_ACCOUNT_TOKEN or create .env.secrets.local}"
-: "${OP_VAULT:?Set OP_VAULT in the environment or .env.secrets.local}"
-: "${OP_ITEM:?Set OP_ITEM in the environment or .env.secrets.local}"
-
 if [[ ! -f "$MODEL_POLICY_FILE" ]]; then
   echo "error: $MODEL_POLICY_FILE not found" >&2
   exit 1
@@ -65,20 +56,56 @@ mkdir -p .runtime config workspace
 chmod 700 .runtime
 chmod 700 config workspace
 
-if ! op whoami >/dev/null 2>&1; then
-  echo "error: 1Password CLI could not authenticate with the configured service account token" >&2
-  exit 1
+# --- Secret resolution ---
+# New path: pluggable backend via resolve-secrets.py (if mapping file exists)
+# Legacy path: op inject (if no mapping file, falls back to original behavior)
+
+MAPPING_FILE="$ROOT_DIR/config/secrets-mapping.yaml"
+
+if [[ -f "$MAPPING_FILE" ]]; then
+  echo "Using pluggable secret resolver (config/secrets-mapping.yaml)..."
+  python3 scripts/resolve-secrets.py
+  # Load resolved secrets into environment for config template rendering
+  set -a
+  # shellcheck disable=SC1091
+  source .runtime/openclaw.env
+  set +a
+else
+  echo "Using legacy 1Password op inject..."
+  if ! command -v op >/dev/null 2>&1; then
+    echo "error: 1Password CLI (op) is not installed" >&2
+    exit 1
+  fi
+  : "${OP_SERVICE_ACCOUNT_TOKEN:?Set OP_SERVICE_ACCOUNT_TOKEN or create .env.secrets.local}"
+  : "${OP_VAULT:?Set OP_VAULT in the environment or .env.secrets.local}"
+  : "${OP_ITEM:?Set OP_ITEM in the environment or .env.secrets.local}"
+  if ! op whoami >/dev/null 2>&1; then
+    echo "error: 1Password CLI could not authenticate with the configured service account token" >&2
+    exit 1
+  fi
+  runtime_tmp_dir="$(mktemp -d .runtime/openclaw.XXXXXX)"
+  runtime_env_tmp="$runtime_tmp_dir/openclaw.env"
+  op inject -i .env.secrets.example -o "$runtime_env_tmp"
+  chmod 600 "$runtime_env_tmp"
+  mv "$runtime_env_tmp" .runtime/openclaw.env
+  rmdir "$runtime_tmp_dir"
+  set -a
+  # shellcheck disable=SC1091
+  source .runtime/openclaw.env
+  set +a
 fi
 
-runtime_tmp_dir="$(mktemp -d .runtime/openclaw.XXXXXX)"
+# --- Config template rendering ---
 config_tmp_dir="$(mktemp -d config/openclaw.XXXXXX)"
-runtime_env_tmp="$runtime_tmp_dir/openclaw.env"
 config_tmp="$config_tmp_dir/openclaw.json"
 
-op inject -i .env.secrets.example -o "$runtime_env_tmp"
-chmod 600 "$runtime_env_tmp"
-
-op inject -i templates/openclaw.json.template -o "$config_tmp"
+# Render config template: substitute op:// refs (if present) and env vars
+if command -v op >/dev/null 2>&1 && [[ -n "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]]; then
+  op inject -i templates/openclaw.json.template -o "$config_tmp"
+else
+  # No op CLI — do plain env var substitution only
+  cp templates/openclaw.json.template "$config_tmp"
+fi
 chmod 600 "$config_tmp"
 
 # Substitute non-secret env vars that op inject doesn't handle.
@@ -101,9 +128,8 @@ if [[ -f config/openclaw.json ]]; then
   echo "Backed up existing config/openclaw.json to $backup_path"
 fi
 
-mv "$runtime_env_tmp" .runtime/openclaw.env
 mv "$config_tmp" config/openclaw.json
-rmdir "$runtime_tmp_dir" "$config_tmp_dir"
+rmdir "$config_tmp_dir"
 
 docker compose --env-file .runtime/openclaw.env up -d
 
