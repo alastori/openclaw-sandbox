@@ -70,6 +70,12 @@ create_if_missing "weekly-memory-synthesis" \
   --no-deliver \
   --message "Review all daily memory files from the past week (memory/YYYY-MM-DD.md). Identify significant events, lessons, decisions, user preferences, and recurring themes worth keeping long-term. Update MEMORY.md with distilled insights — add new entries and remove anything stale or outdated. Also review learnings.md and remove any lessons that are no longer relevant. Write a summary to the notification buffer: python3 /home/node/extensions/notifications/buffer.py --tier low --title 'Memory Synthesis' --body '<brief summary of what was added/removed>' --source weekly-memory-synthesis"
 
+create_if_missing "weekly-doc-watch" \
+  --cron "0 4 * * 1" --tz "$TZ" \
+  --model "$MODEL_LIGHT" --thinking off --timeout-seconds 240 \
+  --no-deliver \
+  --message "Run this command exactly: python3 /home/node/extensions/doc-watch/doc-watch.py. It checks if prompting guidelines from Anthropic, OpenAI, and Google have been updated. The script handles notification buffering on its own. Just run it and report the output."
+
 # --- Digest delivery ---
 
 if [[ -n "$CHAT_ID" ]]; then
