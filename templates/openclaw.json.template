@@ -123,6 +123,7 @@
       "dmPolicy": "pairing",
       "botToken": "op://${OP_VAULT}/${OP_ITEM}/telegram_bot_token",
       "groupPolicy": "allowlist",
+      "groupAllowFrom": ["${TELEGRAM_GROUP_ID}"],
       "streaming": false
     }
   },
