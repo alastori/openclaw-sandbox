@@ -1,4 +1,20 @@
 #!/usr/bin/env python3
+"""Apply pinned model policy to a rendered OpenClaw config.
+
+Usage:
+    python3 scripts/apply-model-policy.py CONFIG_FILE POLICY_FILE
+
+Prerequisites:
+    - CONFIG_FILE: a rendered openclaw.json (from op inject or manual copy)
+    - POLICY_FILE: defaults/models.policy.json with primary + fallback pins
+
+What it changes:
+    - Sets agents.defaults.model.primary and fallbacks from the policy pins
+    - Copies model alias metadata into agents.defaults.models entries
+    - Updates gateway.port and controlUi.allowedOrigins from OPENCLAW_PORT env var
+
+Called by scripts/render-secrets-up.sh as part of the deploy pipeline.
+"""
 
 import json
 import os

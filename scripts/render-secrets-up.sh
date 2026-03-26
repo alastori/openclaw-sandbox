@@ -1,4 +1,33 @@
 #!/usr/bin/env bash
+# render-secrets-up.sh — Render secrets from 1Password, apply config overlays,
+# and start the OpenClaw container.
+#
+# Usage:
+#     bash scripts/render-secrets-up.sh
+#
+# Prerequisites:
+#     - 1Password CLI (op) installed
+#     - OP_SERVICE_ACCOUNT_TOKEN set (via .env.secrets.local or environment)
+#     - OP_VAULT and OP_ITEM set
+#     - templates/openclaw.json.template and .env.secrets.example present
+#     - defaults/models.policy.json present
+#
+# Pipeline steps:
+#     1. Loads env from .env.instance.local and .env.secrets.local
+#     2. Validates 1Password authentication
+#     3. Renders .runtime/openclaw.env via `op inject` from .env.secrets.example
+#     4. Renders config/openclaw.json via `op inject` from the template
+#     5. Substitutes non-secret env vars (TELEGRAM_BOT_NAME, OPENCLAW_PORT)
+#     6. Applies model policy (scripts/apply-model-policy.py)
+#     7. Deep-merges enforced defaults (scripts/apply-defaults.py)
+#     8. Initializes workspace templates on first run (scripts/init-workspace.sh)
+#     9. Backs up existing config/openclaw.json
+#    10. Starts the container with docker compose
+#
+# What it changes:
+#     - Writes .runtime/openclaw.env (API keys, mode 600)
+#     - Writes config/openclaw.json (rendered config, mode 600)
+#     - Creates config/ and workspace/ directories (mode 700)
 
 set -euo pipefail
 

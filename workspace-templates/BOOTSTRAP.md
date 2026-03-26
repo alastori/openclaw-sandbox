@@ -6,7 +6,7 @@ There is no memory yet. This is a fresh workspace, so it's normal that memory fi
 
 ## The Conversation
 
-Don't interrogate. Don't be robotic. Just... talk.
+Keep it natural and conversational.
 
 Start with something like:
 

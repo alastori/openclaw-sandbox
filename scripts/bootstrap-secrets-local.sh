@@ -1,4 +1,23 @@
 #!/usr/bin/env bash
+# bootstrap-secrets-local.sh — Create a 1Password service account and write
+# the local secrets bootstrap file (.env.secrets.local).
+#
+# Usage:
+#     bash scripts/bootstrap-secrets-local.sh
+#     OP_VAULT='My Vault' OP_ITEM='My Item' bash scripts/bootstrap-secrets-local.sh
+#
+# Prerequisites:
+#     - 1Password CLI (op) installed and authenticated (interactive session)
+#     - A vault (default: AI-Agents) with an item (default: OpenClaw Sandbox)
+#       containing the API keys and tokens
+#
+# What it creates:
+#     - A new 1Password service account with read-only access to the vault
+#     - .env.secrets.local with OP_SERVICE_ACCOUNT_TOKEN, OP_VAULT, OP_ITEM
+#
+# Idempotency:
+#     Refuses to run if .env.secrets.local already exists. Delete it first
+#     to recreate the service account token.
 
 set -euo pipefail
 

@@ -13,7 +13,7 @@ Known issues and lessons. Read this at session startup to avoid repeating mistak
 ### Gateway binds to 0.0.0.0 inside Docker (expected)
 - **Date:** 2026-03-25
 - **What:** Logs show the gateway binding to `0.0.0.0` (non-loopback). Security audit may flag this as exposed to the network.
-- **Why it's OK:** Docker requires the container to bind on `0.0.0.0` for port forwarding to work. The `docker-compose.yml` maps this to `127.0.0.1` on the host side, so it is NOT exposed to the network. This is the intended configuration.
+- **Why it's OK:** Docker requires the container to bind on `0.0.0.0` for port forwarding to work. The `docker-compose.yml` maps this to `127.0.0.1` on the host side, so it is not exposed to the network. This is the intended configuration.
 - **Action:** Skip this in audit reports — the host-side binding is restricted to 127.0.0.1 and is safe.
 
 ### Ollama models flagged as "unsafe without sandbox" (expected)

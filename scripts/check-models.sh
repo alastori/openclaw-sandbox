@@ -1,4 +1,26 @@
 #!/usr/bin/env bash
+# check-models.sh — Probe configured models against their providers and audit
+# the pinned model policy.
+#
+# Usage:
+#     bash scripts/check-models.sh           # probe + audit (read-only)
+#     bash scripts/check-models.sh --adopt   # update policy if newer models found
+#
+# Prerequisites:
+#     - config/openclaw.json (rendered by render-secrets-up.sh)
+#     - .runtime/openclaw.env (contains provider API keys)
+#     - defaults/models.policy.json (pinned model policy)
+#
+# What it does:
+#     1. Probes each configured model (primary, fallbacks, optional) against
+#        its provider API and reports reachability / auth status.
+#     2. Compares models.policy.json pins against provider catalogs and the
+#        local OpenClaw model catalog, reporting newer compatible versions.
+#
+# --adopt flag:
+#     When a newer model is confirmed by both the provider catalog and the
+#     local OpenClaw catalog, updates defaults/models.policy.json in place.
+#     Rerun render-secrets-up.sh afterward to apply the new pins.
 
 set -euo pipefail
 

@@ -2,6 +2,8 @@
 
 Run [OpenClaw](https://github.com/openclaw/openclaw) locally in a sandboxed Docker container on macOS Apple Silicon, powered by local models via [Ollama](https://ollama.com).
 
+Note: `CLAUDE.md` in the project root is a symlink to `AGENTS.md`.
+
 ## Table of Contents
 
 - [Quick Start](#quick-start)
@@ -110,8 +112,6 @@ set +a
 docker compose ps
 ```
 
-For future headless-server deployments: this repo already sets `restart: unless-stopped` in [docker-compose.yml](docker-compose.yml), so the container is meant to come back automatically when the Docker engine comes back. On a Linux server, the missing persistence layer is usually Docker itself at boot, managed by `systemd` (`docker.service` / `containerd.service`), not a separate systemd unit for OpenClaw. If you later deploy this on a headless box, the practical checklist is: enable Docker at boot, keep using `docker compose up -d`, preserve `config/`, `workspace/`, and `.env.secrets.local`, and only expose the port beyond loopback deliberately behind your preferred network boundary.
-
 ## Configuration
 
 The setup script creates `config/openclaw.json` from the included example template. You can also copy it manually:
@@ -126,8 +126,8 @@ After any config change, restart the gateway with `docker compose restart`.
 
 The repo has two tracked configuration entry points:
 
-- `templates/openclaw.json.minimal` — minimal local-only example for manual setup
-- `templates/openclaw.json.template` — richer runtime template rendered by `./scripts/render-secrets-up.sh`
+- `templates/openclaw.json.minimal` -- minimal local-only example for manual setup
+- `templates/openclaw.json.template` -- richer runtime template rendered by `./scripts/render-secrets-up.sh`
 
 Use the rendered template as the reference for the current day-to-day setup. It includes the generic secret-rendering flow, Telegram token placeholders, and model auth strategy.
 
@@ -135,11 +135,12 @@ Use the rendered template as the reference for the current day-to-day setup. It 
 
 The `defaults/` directory contains JSON overlays that are deep-merged into the rendered config at deploy time. User-explicit values always win; defaults only fill in missing keys.
 
-- `defaults/security.json` — elevated tools off, loop detection, rate limits, bash/debug commands disabled
-- `defaults/logging.json` — file logging path, API key redaction patterns
-- `defaults/governance.json` — context tokens, compaction mode
-- `defaults/models.policy.json` — pinned primary/fallback model choices
-The current portable default policy is hosted-first: `google/gemini-2.5-flash` as primary, `openai-codex/gpt-5.4` (Codex OAuth subscription) as first fallback, `openai/gpt-5.4` (API key) as second fallback, and local Ollama models as last resort.
+- `defaults/security.json` -- elevated tools off, loop detection, rate limits, bash/debug commands disabled
+- `defaults/logging.json` -- file logging path, API key redaction patterns
+- `defaults/governance.json` -- context tokens, compaction mode
+- `defaults/models.policy.json` -- pinned primary/fallback model choices
+
+The model policy is defined in `defaults/models.policy.json` -- subscription models first (Gemini CLI OAuth, Codex OAuth), then API-billed fallbacks, local Ollama as last resort.
 
 ### Workspace Templates
 
@@ -147,16 +148,18 @@ The `workspace-templates/` directory contains seed files (`SOUL.md`, `USER.md`, 
 
 ### Extensions
 
-Optional add-ons that run on the host, not inside the container. Currently one extension exists:
+Extensions live in `extensions/`. Each has its own README with configuration and usage details.
 
+- **notifications** -- Notification buffer + digest system with Telegram topic routing.
 - **news-brief** -- RSS feeds summarized by Ollama, delivered via Telegram.
+- **backup** -- Git auto-commit + push tracked changes.
+- **doc-watch** -- Monitors external documentation URLs for changes.
 
-To set up:
+To set up an extension:
 
 ```bash
-cp extensions/news-brief/config.example.json extensions/news-brief/config.json
-# Edit config.json: fill in telegram_chat_id, optionally customize feeds and model
-python3 extensions/news-brief/news-brief.py
+cp extensions/<name>/config.example.json extensions/<name>/config.json
+# Edit config.json with your settings
 ```
 
 ### Docker Build Args
@@ -220,22 +223,26 @@ What this does:
 - starts the container with `docker compose --env-file .runtime/openclaw.env up -d`
 
 Today the renderer is backed by 1Password service-account references (`op://...`), but the filenames are backend-neutral so the renderer can be replaced later without renaming the workflow.
-The renderer also backs up the previous `config/openclaw.json` and renders via temp directories so `op inject` does not prompt on overwrite.
 
 Files involved:
 
-- `.env.instance.local.example` — example per-checkout port/project settings
-- `.env.secrets.example` — tracked secret-reference map
-- `.env.secrets.local.example` — example local bootstrap file
-- `.env.secrets.local` — untracked local bootstrap token
-- `scripts/bootstrap-secrets-local.sh` — creates the service account token and local bootstrap file
-- `defaults/models.policy.json` — pinned hosted-model policy for portable primary/fallback choices
-- `defaults/security.json`, `logging.json`, `governance.json` — enforced config overlays
-- `scripts/apply-model-policy.py` — applies the pinned model policy to the rendered config
-- `scripts/apply-defaults.py` — deep-merges defaults into the rendered config
-- `scripts/init-workspace.sh` — copies `workspace-templates/` into `config/workspace/` on first run
-- `templates/openclaw.json.template` — tracked config template with 1Password secret references
-- `.runtime/openclaw.env` — generated runtime env file, untracked
+**Bootstrap & secrets:**
+- `.env.instance.local.example` -- example per-checkout port/project settings
+- `.env.secrets.example` -- tracked secret-reference map
+- `.env.secrets.local.example` -- example local bootstrap file
+- `.env.secrets.local` -- untracked local bootstrap token
+- `scripts/bootstrap-secrets-local.sh` -- creates the service account token and local bootstrap file
+
+**Config overlays & policy:**
+- `defaults/models.policy.json` -- pinned hosted-model policy for portable primary/fallback choices
+- `defaults/security.json`, `logging.json`, `governance.json` -- enforced config overlays
+- `scripts/apply-model-policy.py` -- applies the pinned model policy to the rendered config
+- `scripts/apply-defaults.py` -- deep-merges defaults into the rendered config
+
+**Deploy pipeline:**
+- `scripts/init-workspace.sh` -- copies `workspace-templates/` into `config/workspace/` on first run
+- `templates/openclaw.json.template` -- tracked config template with 1Password secret references
+- `.runtime/openclaw.env` -- generated runtime env file, untracked
 
 The bootstrap script writes shell-safe values into `.env.secrets.local`. This matters for names with spaces, such as `OP_ITEM=OpenClaw Sandbox`.
 Use `bash ./scripts/...` to run the helper scripts unless you've explicitly marked them executable in your local checkout.
@@ -262,10 +269,10 @@ COMPOSE_PROJECT_NAME=openclaw-wife
 OPENCLAW_PORT=18790
 ```
 
-This repo does not support multiple independent users from a single checkout because `config/` and `workspace/` are shared within one repo directory.
-`./setup.sh` also respects `OPENCLAW_PORT` for checkouts that start from `templates/openclaw.json.minimal`, not just the secrets-rendered path.
-For routine per-instance operations, prefer `./oc ...` over raw `docker compose ...`; the wrapper loads `.env.instance.local` automatically.
-If two parallel instances share the same Telegram bot token, only one should poll Telegram at a time. For smoke tests or temporary side-by-side instances, disable Telegram in the secondary instance or give it a different bot token.
+- This repo does not support multiple independent users from a single checkout because `config/` and `workspace/` are shared within one repo directory.
+- `./setup.sh` also respects `OPENCLAW_PORT` for checkouts that start from `templates/openclaw.json.minimal`, not just the secrets-rendered path.
+- For routine per-instance operations, prefer `./oc ...` over raw `docker compose ...`; the wrapper loads `.env.instance.local` automatically.
+- If two parallel instances share the same Telegram bot token, only one should poll Telegram at a time. For smoke tests or temporary side-by-side instances, disable Telegram in the secondary instance or give it a different bot token.
 
 ### Fresh Clone Recovery
 
@@ -292,7 +299,6 @@ bash ./scripts/check-models.sh
 The script reads the rendered config plus `.runtime/openclaw.env`, probes the configured models directly against their providers, and reports `required` versus `optional` models. It also compares `models.policy.json` against the current provider catalogs and reports whether newer compatible hosted models are available.
 Use `bash ./scripts/check-models.sh --adopt` to opt in to newer provider models. That only updates `models.policy.json` when the newer model is confirmed by both the provider catalog and the local OpenClaw catalog; rerun `bash ./scripts/render-secrets-up.sh` afterward to apply the new pins.
 OAuth/profile-backed providers such as `github-copilot` currently report as `not_checked` because they are not driven by direct API-key requests from this script.
-If a live turn reports an Anthropic "rate limit" failover unexpectedly, check Anthropic billing/credits too. In practice, insufficient Anthropic credits can surface through OpenClaw as a generic rate-limit-style failover message even when the provider is returning a different error class.
 
 ## Integrations
 
@@ -333,12 +339,12 @@ Do not run two instances with the same Telegram bot token enabled unless you exp
 <details>
 <summary>Organize conversations with topic threads</summary>
 
-Instead of one flat DM, create a Telegram group with **Topics** enabled. Each topic gets its own OpenClaw session and context window — better memory, no topic cross-contamination, and cleaner notifications.
+Instead of one flat DM, create a Telegram group with **Topics** enabled. Each topic gets its own OpenClaw session and context window -- better memory, no topic cross-contamination, and cleaner notifications.
 
 **Setup:**
 
 1. In Telegram, create a new Group. Add only yourself and your bot.
-2. Go to Group Settings → Topics → Enable.
+2. Go to Group Settings > Topics > Enable.
 3. Create topics. Suggested defaults:
 
 | Topic | Purpose |
@@ -477,7 +483,7 @@ For a single-user setup this default is usually fine. If you increase it, do it 
 
 ## Recommended Models
 
-Tested on Mac Studio with 96 GB unified memory:
+Tested on Apple Silicon with 64+ GB unified memory:
 
 | Model | Approx. RAM (Q8) | Speed | Best For |
 |-------|-------------------|-------|----------|
@@ -506,15 +512,7 @@ The Docker container enforces:
 
 ### Nightly Crons
 
-Three built-in cron jobs run overnight (managed via `./oc cron list`):
-
-| Job | Schedule (ET) | What it does |
-|-----|--------------|-------------|
-| `nightly-update-check` | 2:00 AM | Checks for OpenClaw updates, reports to Telegram |
-| `nightly-security-audit` | 2:30 AM | Runs `security audit --deep`, reports findings |
-| `morning-log-review` | 7:00 AM | Reviews overnight logs for errors, proposes fixes |
-
-All use `google/gemini-2.5-flash` with isolated sessions. Manage with `./oc cron list`, `./oc cron run <id>`, `./oc cron disable <id>`.
+Default crons are created by `bash scripts/setup-crons.sh --telegram-chat-id <ID>`. View the schedule with `./oc cron list`. Manage with `./oc cron run <id>`, `./oc cron disable <id>`.
 
 ## Troubleshooting
 
@@ -574,7 +572,13 @@ docker run --rm --add-host=host.docker.internal:host-gateway alpine \
 <details>
 <summary>Built-in cron jobs not executing</summary>
 
-The built-in cron scheduler was broken in 2026.3.8–2026.3.11 but is fixed and enabled as of 2026.3.23. Check status with `./oc cron status`. If you're still on an older version, use a host-side scheduler (launchd on macOS, systemd timer on Linux) as a workaround.
+Verify your OpenClaw version supports built-in cron with `./oc cron status`.
+</details>
+
+<details>
+<summary>Anthropic rate-limit diagnostic</summary>
+
+If a live turn reports an Anthropic "rate limit" failover unexpectedly, check Anthropic billing/credits too. In practice, insufficient Anthropic credits can surface through OpenClaw as a generic rate-limit-style failover message even when the provider is returning a different error class.
 </details>
 
 ## License

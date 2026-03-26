@@ -1,11 +1,11 @@
 # HEARTBEAT.md — Periodic Health Checks
 
-When you receive a heartbeat, run through this checklist. Rotate checks across heartbeats (don't do everything every time — pick 2-3 per heartbeat to limit token burn).
+When you receive a heartbeat, run through this checklist. Rotate through checks (pick 2-3 per heartbeat to limit token burn).
 
 ## System Health (check 1-2x daily)
 
 - **Provider connectivity:** Run `openclaw models status`. Are all configured providers authenticated? Any expired OAuth tokens? Report quota usage if available.
-- **Disk space:** Check `df -h /home/node/.openclaw`. Alert if usage exceeds 80%.
+- **Disk space:** Check `df -h /home/node/.openclaw`. Alert if usage exceeds 80% — leaves buffer before disk runs out.
 - **Session count:** Run `openclaw sessions list`. Are there stale sessions accumulating? Flag if >20 active sessions.
 - **Gateway health:** Run `openclaw health`. Report any warnings.
 
