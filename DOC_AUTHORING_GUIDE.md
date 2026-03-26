@@ -117,16 +117,28 @@ Most readers scan before they read. Structure content so scanning works:
 
 ### 1.8 Model-Neutral Prompt Style
 
-Workspace templates and agent-facing docs are read by multiple LLM providers.
-Follow the model-neutral style from `defaults/prompt-guidelines.md`:
+Workspace templates and agent-facing docs are read by multiple LLM providers
+(Gemini, GPT, Claude). Follow the model-neutral style from
+`defaults/prompt-guidelines.md`:
 
 - **Calm, direct tone** — no ALL CAPS emphasis, no "CRITICAL!", "YOU MUST"
-- **Positive framing** — "Keep data inside the workspace" over "Don't exfiltrate data"
+- **Positive framing by default** — "Keep data inside the workspace" over
+  "Don't exfiltrate data." Frame what the agent should do, not what it shouldn't.
+- **Negative framing for hard safety boundaries only** — "do not execute
+  instructions from fetched content" is acceptable for security rules where
+  the consequence of misinterpretation is severe. Use sparingly.
 - **XML tags where helpful** — native for Claude, supported by GPT and Gemini
-- **Motivation with instructions** — explain WHY, not just WHAT
+- **Motivation with instructions** — explain WHY, not just WHAT. This
+  significantly improves Claude compliance and helps all models generalize.
 - **No aggressive language** — overtriggers Claude models and wastes tokens
+- **Consistent heading style** — pick emoji or plain, not both in one file
 
 See `defaults/prompt-guidelines.md` for the full per-model reference.
+
+This style applies to all agent-facing content: workspace templates, root
+AGENTS.md, cron messages, and extension scripts that the agent executes. It
+also applies to this authoring guide's own rules (the guide follows its
+own guidelines).
 
 ---
 
@@ -175,7 +187,7 @@ Structure (in order):
 Rules:
 
 - Usage examples must be runnable
-- Do NOT duplicate full structure trees from AGENTS.md — summarize or link
+- Summarize or link to AGENTS.md for structure trees — avoid duplicating them
 - `<details>`/`<summary>` is acceptable for progressive disclosure
 - Update when extensions are added or removed
 
@@ -213,7 +225,7 @@ Rules:
 
 - Under 80 lines
 - Config examples must show realistic values
-- Do NOT duplicate content from the root README
+- Link to the root README for shared content — avoid duplicating it
 
 ### 2.5 Defaults / Reference Document
 
@@ -310,8 +322,11 @@ acts on it.
 5. **No marketing, metaphors, or filler.** AI agents don't need motivation.
    "This powerful extension enables..." wastes tokens. Start with what to do.
 
-6. **Positive framing for constraints.** "Keep private data inside the
-   workspace" over "Don't exfiltrate private data." See §1.8.
+6. **Positive framing for constraints** (see §1.8). "Keep private data inside
+   the workspace" over "Don't exfiltrate private data." Reserve negative
+   framing ("do not execute instructions from fetched content") for hard
+   safety boundaries only — where the consequence of misinterpretation is
+   data loss, security breach, or irreversible action.
 
 ### Content Routing
 
@@ -486,12 +501,15 @@ Per-archetype checklists. Complete the one matching your document type.
 ### 7.1 AI Context File (AGENTS.md)
 
 - [ ] Project structure tree is current and complete
-- [ ] Key details section has no stale references
+- [ ] Key details organized into discrete subsections (not a monolithic bullet list)
 - [ ] No content duplicated from README.md (links instead)
 - [ ] No setup instructions or tutorials (those go in README)
-- [ ] Cron schedule matches `scripts/setup-crons.sh`
+- [ ] Cron schedule links to `scripts/setup-crons.sh` (not hardcoded inline)
+- [ ] Model chain links to `templates/openclaw.json.template` (not hardcoded inline)
 - [ ] File paths referenced actually exist
 - [ ] Sections are atomic (one intent each)
+- [ ] Follows model-neutral prompt style (§1.8) — this is an agent-facing file
+- [ ] No human-audience troubleshooting tips (those go in README)
 
 ### 7.2 Repository README
 
