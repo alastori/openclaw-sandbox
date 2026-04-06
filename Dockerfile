@@ -17,10 +17,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN npm install -g openclaw@${OPENCLAW_VERSION} \
     && if [ "$INSTALL_GEMINI_CLI" = "true" ]; then npm install -g @google/gemini-cli; fi
 
-# Remove build tools but keep python3 and cron for agent tasks
+# Remove build tools; keep only runtime deps (python3 for extensions, curl for healthcheck)
+# Remove cron package (OpenClaw uses its own scheduler, system cron is not started)
 RUN apt-get purge -y build-essential && apt-get autoremove -y \
-    && apt-get update && apt-get install -y --no-install-recommends python3 cron \
     && rm -rf /var/lib/apt/lists/*
+
+# Harden: strip SUID/SGID bits from all binaries
+RUN find / -type f \( -perm -4000 -o -perm -2000 \) -exec chmod a-s {} + 2>/dev/null || true
+
+# Harden: disable root shell login
+RUN sed -i 's|root:x:0:0:root:/root:/bin/bash|root:x:0:0:root:/root:/sbin/nologin|' /etc/passwd
+
+# Harden: remove world-writable dirs (except /tmp which is tmpfs)
+RUN chmod 1770 /var/tmp && chmod 1770 /run/lock
 
 # Create non-root user workspace
 RUN mkdir -p /home/node/.openclaw /home/node/workspace /home/node/skills \

@@ -18,7 +18,6 @@ services:
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - GOOGLE_API_KEY=${GEMINI_API_KEY:-}
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OLLAMA_HOST=host.docker.internal
@@ -32,7 +31,13 @@ services:
     # Security constraints
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
     tmpfs:
       - /tmp:size=512m
+      - /home/node/.npm:size=256m,uid=1000,gid=1000
+      - /var/tmp:size=64m
+    pids_limit: 256
     mem_limit: 2g
     cpus: 2.0

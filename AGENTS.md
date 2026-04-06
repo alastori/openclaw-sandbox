@@ -5,7 +5,7 @@ Sandboxed Docker setup for running OpenClaw with local LLMs via Ollama on macOS 
 ## Project Structure
 
 ```
-Dockerfile                          Container image (node:22 + openclaw + gemini-cli + clawsec + python3 + cron)
+Dockerfile                          Container image (node:22 + openclaw + gemini-cli + clawsec + python3)
 docker-compose.yml                  Orchestration with security constraints
 setup.sh                            One-command setup script
 oc                                  Host-side shortcut: ./oc <cmd> = docker compose exec ... openclaw <cmd>
