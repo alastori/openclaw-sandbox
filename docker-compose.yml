@@ -15,11 +15,12 @@ services:
       - ./config:/home/node/.openclaw
       - ./workspace:/home/node/workspace
       - ./extensions:/home/node/extensions:ro
-    # Secrets (API keys, gateway token) come from .runtime/openclaw.env, which is
-    # rendered by scripts/render-secrets-up.sh. Loading them here (instead of via
-    # `environment:` with shell substitution) means any `docker compose up` or
-    # `restart` picks them up automatically, not just invocations that pass
-    # `--env-file` explicitly.
+    # Secrets live in .runtime/openclaw.env (rendered by scripts/render-secrets-up.sh).
+    # Loaded here instead of via `environment:` because compose's `environment:` takes
+    # precedence over `env_file:` and would silently override loaded secrets with
+    # empty strings if a key were declared with a `${VAR:-}` shell default.
+    # `required: false` lets `docker compose config` and similar work on a fresh
+    # checkout before the env file has been rendered.
     env_file:
       - path: .runtime/openclaw.env
         required: false

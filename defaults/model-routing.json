@@ -6,7 +6,7 @@
     { "model": "openai/gpt-5.4",                        "billing": "api",          "role": "second fallback" },
     { "model": "anthropic/claude-sonnet-4-6",            "billing": "api",          "role": "third fallback" },
     { "model": "anthropic/claude-opus-4-6",              "billing": "api",          "role": "precision fallback" },
-    { "model": "ollama/gemma4:26b-a4b-it-q8_0",          "billing": "free",         "role": "local last resort" }
+    { "model": "ollama/qwen3-coder:30b-a3b-q8_0",        "billing": "free",         "role": "local last resort" }
   ],
   "strategy": {
     "main_chat": {
@@ -34,8 +34,8 @@
       "rationale": "Best-in-class reasoning (91% GPQA Diamond). API-billed — use only when Codex falls short."
     },
     "local_fallback": {
-      "model": "ollama/gemma4:26b-a4b-it-q8_0",
-      "rationale": "Gemma 4 26B MoE: 3.8B active params for fast inference, 256K context. Free, local Metal GPU. No web tools allowed."
+      "model": "ollama/qwen3-coder:30b-a3b-q8_0",
+      "rationale": "Qwen3 Coder 30B-A3B MoE: ~3B active params per token for fast inference, 65K context. Free, local Metal GPU. No web tools allowed."
     }
   },
   "topic_suggestions": {

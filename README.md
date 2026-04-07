@@ -81,8 +81,6 @@ macOS Host
 
 The LLM runs natively on the host for full Metal GPU acceleration. The Docker container runs the OpenClaw gateway with Node.js 22, Python 3, cron, and Gemini CLI available for agent tasks, capped at 2 GB RAM and 2 CPU cores.
 
-> **Note:** `docker-compose.yml` aliases `GEMINI_API_KEY` as `GOOGLE_API_KEY` for Google SDK compatibility.
-
 ## Common Commands
 
 The `./oc` wrapper script is a checkout-scoped shortcut for `docker compose exec openclaw-gateway openclaw`:

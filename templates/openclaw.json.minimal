@@ -7,8 +7,8 @@
         "api": "openai-completions",
         "models": [
           {
-            "id": "gemma4:26b-a4b-it-q8_0",
-            "name": "Gemma 4 26B MoE Q8",
+            "id": "qwen3-coder:30b-a3b-q8_0",
+            "name": "Qwen3 Coder 30B-A3B Q8",
             "contextWindow": 65536
           }
         ]
@@ -19,7 +19,7 @@
     "defaults": {
       "contextTokens": 50000,
       "model": {
-        "primary": "ollama/gemma4:26b-a4b-it-q8_0"
+        "primary": "ollama/qwen3-coder:30b-a3b-q8_0"
       },
       "compaction": {
         "mode": "safeguard"
