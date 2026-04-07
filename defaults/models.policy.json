@@ -39,9 +39,9 @@
       },
       {
         "provider": "ollama",
-        "pinned": "ollama/qwen2.5-coder:32b-instruct-q8_0",
-        "alias": "Qwen 2.5 Coder Local",
-        "familyRegex": "^qwen2\\.5-coder",
+        "pinned": "ollama/qwen3-coder:30b-a3b-q8_0",
+        "alias": "Qwen3 Coder Local",
+        "familyRegex": "^qwen3-coder",
         "adopt": "manual"
       }
     ]
