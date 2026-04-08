@@ -76,6 +76,30 @@ create_if_missing "weekly-doc-watch" \
   --no-deliver \
   --message "Run this command exactly: python3 /home/node/extensions/doc-watch/doc-watch.py. It checks if prompting guidelines from Anthropic, OpenAI, and Google have been updated. The script handles notification buffering on its own. Just run it and report the output."
 
+# --- Monitoring ---
+# These two crons watch the rest of the system. They use the same hosted model
+# as the other crons (`$MODEL_LIGHT`) for one practical reason: only models in
+# the agent's pinned failover chain are allowed for cron payloads, and the only
+# local Ollama model in that chain (qwen3-coder:30b-a3b-q8_0) hallucinates a
+# Llama-style `<function=exec>` tool-call format that OpenClaw does not
+# recognize, causing the cron to silently return `ok` without ever running the
+# script. A monitoring cron that lies about success is worse than no monitoring,
+# so we accept the trade-off: when Gemini itself is broken, these crons go
+# stale, but the cron-list dashboard makes that visible and the morning digest
+# absence is itself a signal.
+
+create_if_missing "nightly-auth-health" \
+  --cron "0 6 * * *" --tz "$TZ" \
+  --model "$MODEL_LIGHT" --thinking off --timeout-seconds 60 \
+  --no-deliver \
+  --message "Run this command exactly: python3 /home/node/extensions/auth-health/check.py. The script handles notification buffering on its own. Just run it."
+
+create_if_missing "cascade-detect" \
+  --cron "*/30 * * * *" --tz "$TZ" \
+  --model "$MODEL_LIGHT" --thinking off --timeout-seconds 60 \
+  --no-deliver \
+  --message "Run this command exactly: python3 /home/node/extensions/cascade-detect/detect.py. The script handles notification buffering on its own. Just run it."
+
 # --- Digest delivery ---
 
 if [[ -n "$CHAT_ID" ]]; then
