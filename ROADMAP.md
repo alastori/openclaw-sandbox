@@ -11,6 +11,57 @@ history is the audit trail.
 
 ## Watching upstream
 
+### OpenClaw version pin (2026.4.5)
+
+**Goal:** Track upstream OpenClaw releases past 2026.4.5 so we can adopt
+them as soon as they are compatible with our hardened container image.
+
+**Current state:** [`Dockerfile`](Dockerfile) pins
+`ARG OPENCLAW_VERSION=2026.4.5`. Tested 2026.4.21 on 2026-04-22; the
+gateway starts but every CLI call and the Telegram plugin itself fail
+because the plugin loader tries to `mkdir .../dist/extensions/telegram/node_modules`
+and then `npm install` at runtime. Our
+[`docker-compose.yml`](docker-compose.yml) sets `read_only: true` on the
+rootfs (hardening from commit `3f44a44`), so the mkdir aborts with
+`ENOENT` and the gateway can no longer resolve `grammy` (the Telegram bot
+framework).
+
+**Why blocked:** The regression is in OpenClaw's plugin packaging between
+2026.4.5 and 2026.4.21. Older versions install plugin deps as part of
+`npm install -g openclaw@...` at image build time; newer versions defer
+that to first CLI/gateway load, which requires a writable plugin dir.
+Dropping `read_only: true` would unblock the upgrade but give back the
+hardening gain the image was specifically built for.
+
+**Definition of done:** Any one of the following lands in a released
+OpenClaw version:
+
+1. Plugin `node_modules` are installed as part of the published npm
+   package (so `npm install -g openclaw@...` yields a self-contained
+   install tree, no runtime mkdir).
+2. A Dockerfile-time command like `openclaw plugins install-deps` is
+   documented and stable, callable as a single `RUN` step so the image
+   build materialises the plugin tree before `read_only: true` takes
+   effect.
+3. The plugin loader falls back gracefully when its install dir is
+   read-only (e.g. resolves deps from a pre-populated adjacent path, or
+   no-ops with a warning instead of throwing).
+
+**Retest plan when unblocked:**
+
+1. `OPENCLAW_VERSION=<new-version> docker compose build`
+2. `docker compose up -d`
+3. `./oc health` should return `Telegram: ok` and session-store rows.
+4. `./oc cron list` should list all 9 crons without `MODULE_NOT_FOUND`.
+5. If green, flip the Dockerfile `ARG OPENCLAW_VERSION=<new-version>`
+   and delete this roadmap entry.
+
+**Last verified blocked:** 2026-04-22 against OpenClaw 2026.4.21
+(`f788c88`), Mac Studio M3, Docker Desktop. Gateway starts (container
+reports `healthy`) but `./oc cron list` fails with
+`Cannot find module 'grammy'` and `./oc health` fails with the plugin
+`mkdir` ENOENT.
+
 ### Local-model monitoring crons
 
 **Goal:** Run `nightly-auth-health` and `cascade-detect` (see
