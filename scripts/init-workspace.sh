@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Copy workspace templates into config/workspace/ if not already populated.
+# Copy workspace templates into ./workspace/ if not already populated.
 # Safe to run multiple times — never overwrites existing files.
+# Matches the docker-compose mount: ./workspace -> /home/node/workspace.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SRC="$ROOT_DIR/workspace-templates"
-DST="$ROOT_DIR/config/workspace"
+DST="$ROOT_DIR/workspace"
 
 if [[ ! -d "$SRC" ]]; then
   echo "error: workspace-templates/ not found" >&2

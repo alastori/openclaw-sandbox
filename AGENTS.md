@@ -27,7 +27,7 @@ defaults/                           Enforced config overlays (merged at deploy t
   secrets-backend.json              Pluggable credential backend definitions (1Password, Vault, AWS SM, Keychain, env)
   prompt-guidelines.md              Model-neutral prompt style guide (Claude, GPT, Gemini)
 
-workspace-templates/                Tracked seed files copied to config/workspace/ on first deploy
+workspace-templates/                Tracked seed files copied to workspace/ on first deploy
   SOUL.md, USER.md, IDENTITY.md, AGENTS.md, BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md, learnings.md
 
 extensions/                         Optional add-ons, mounted read-only at /home/node/extensions
@@ -51,7 +51,7 @@ scripts/
   setup-telegram-topics.sh          Create Ops + Alerts topics in a Telegram group, update configs
   apply-defaults.py                 Deep-merge defaults/*.json into rendered config
   apply-model-policy.py             Apply pinned model policy
-  init-workspace.sh                 Copy workspace-templates/ into config/workspace/ (first run only)
+  init-workspace.sh                 Copy workspace-templates/ into workspace/ (first run only)
   bootstrap-secrets-local.sh        Create 1Password service account token
   check-models.sh                   Probe configured models and audit policy
   load-local-env.sh                 Source .env.instance.local and .env.secrets.local into the shell

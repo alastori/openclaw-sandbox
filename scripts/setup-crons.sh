@@ -56,7 +56,7 @@ create_if_missing "morning-log-review" \
   --cron "0 7 * * *" --tz "$TZ" \
   --model "$MODEL_LIGHT" --thinking off --timeout-seconds 300 \
   --no-deliver \
-  --message "Review the gateway logs from the last 12 hours. First read workspace/learnings.md for known acceptable findings — do not re-report those. Look for genuinely new errors, warnings, failed cron runs, model failures. For each new issue, if you can identify the root cause, append a lesson to workspace/learnings.md with the date and what went wrong. Then write your summary to the notification buffer: python3 /home/node/extensions/notifications/buffer.py --tier low --title 'Log Review' --body '<your summary of NEW issues only>' --source morning-log-review. Use --tier medium for serious new issues. If nothing new, buffer a brief all-clear at tier low."
+  --message "Review overnight logs. Sources in priority order: (1) /home/node/.openclaw/cron/runs/*.jsonl, grep for '\"status\":\"error\"' in files modified in the last 12h, this is the authoritative signal for cron failures; (2) /home/node/.openclaw/logs/openclaw.log, tail the last 2000 lines and grep -iE 'error|fail|timeout'; (3) /home/node/.openclaw/logs/config-audit.jsonl for unexpected config changes. Read workspace/learnings.md first and skip anything listed there. For genuinely new issues, append a dated lesson to workspace/learnings.md, then buffer a summary: python3 /home/node/extensions/notifications/buffer.py --tier low --title 'Log Review' --body '<your summary of NEW issues only>' --source morning-log-review. Use --tier medium for serious new issues. If nothing new, buffer a brief all-clear at tier low."
 
 create_if_missing "nightly-doc-drift" \
   --cron "0 3 * * *" --tz "$TZ" \

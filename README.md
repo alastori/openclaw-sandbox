@@ -28,6 +28,7 @@ Note: `CLAUDE.md` in the project root is a symlink to `AGENTS.md`.
   - [Ollama Concurrency](#ollama-concurrency)
 - [Recommended Models](#recommended-models)
 - [Security](#security)
+- [Maintenance](#maintenance)
 - [Troubleshooting](#troubleshooting)
 
 **Two setup paths:**
@@ -146,7 +147,7 @@ The model policy is defined in `defaults/models.policy.json` -- subscription mod
 
 ### Workspace Templates
 
-The `workspace-templates/` directory contains seed files (`SOUL.md`, `USER.md`, `IDENTITY.md`, etc.) that are copied to `config/workspace/` on the first deploy. Users can customize them before running setup. They define the agent's personality, memory structure, and behavioral guidelines.
+The `workspace-templates/` directory contains seed files (`SOUL.md`, `USER.md`, `IDENTITY.md`, etc.) that are copied to `workspace/` on the first deploy. Users can customize them before running setup. They define the agent's personality, memory structure, and behavioral guidelines.
 
 ### Extensions
 
@@ -242,7 +243,7 @@ Files involved:
 - `scripts/apply-defaults.py` -- deep-merges defaults into the rendered config
 
 **Deploy pipeline:**
-- `scripts/init-workspace.sh` -- copies `workspace-templates/` into `config/workspace/` on first run
+- `scripts/init-workspace.sh` -- copies `workspace-templates/` into `workspace/` on first run
 - `templates/openclaw.json.template` -- tracked config template with 1Password secret references
 - `.runtime/openclaw.env` -- generated runtime env file, untracked
 - `scripts/resolve-secrets.py` -- pluggable secret resolver, used by `render-secrets-up.sh` when `config/secrets-mapping.yaml` exists
@@ -540,6 +541,45 @@ The Docker container enforces:
 ### Nightly Crons
 
 Default crons are created by `bash scripts/setup-crons.sh --telegram-chat-id <ID>`. View the schedule with `./oc cron list`. Manage with `./oc cron run <id>`, `./oc cron disable <id>`.
+
+## Maintenance
+
+Routine checks to keep the gateway, crons, and model chain healthy.
+
+### Quick health
+
+```bash
+./oc health                      # gateway reachability + basic probe
+./oc cron list                   # every cron, last status, next run
+./oc doctor                      # diagnostic report (no changes)
+```
+
+### Apply recommended repairs
+
+```bash
+./oc doctor --fix                # archive orphan transcripts, normalize legacy cron storage, etc.
+./oc doctor --fix --deep         # same, plus scan for extra gateway installs on the host
+```
+
+`--fix` is the non-destructive repair path: archived files are renamed to `*.deleted.<timestamp>`, not removed. Use `--force` only to overwrite custom service config.
+
+### Periodic audits
+
+```bash
+bash ./scripts/check-models.sh               # probe the pinned model chain; see Periodic Model Audit
+./oc security audit --deep                   # security review; known-acceptable findings live in workspace/learnings.md
+cat config/logs/digest.jsonl | tail -20      # confirm recent Telegram digest deliveries
+```
+
+### When to run what
+
+| Trigger | Run |
+|---|---|
+| Every few days | `./oc doctor` |
+| After provider / key rotation | `bash ./scripts/check-models.sh` |
+| After upgrading OpenClaw | `./oc doctor --fix`, then `./oc health` |
+| Cron silently reports `ok` but doesn't do the work | Check `config/cron/runs/<jobId>.jsonl` |
+| No morning digest arrived | `tail config/logs/digest.jsonl`; then `./oc cron run <digest-id>` to retry |
 
 ## Troubleshooting
 

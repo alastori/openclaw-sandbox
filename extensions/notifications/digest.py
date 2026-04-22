@@ -20,6 +20,22 @@ from urllib.request import Request, urlopen
 EXTENSION_DIR = Path(__file__).resolve().parent
 ROOT_DIR = EXTENSION_DIR.parent.parent
 
+# Host side: ROOT_DIR/config/logs; container side: /home/node/.openclaw/logs.
+# Both point at the same dir on disk via the config/ volume mount.
+_openclaw_home = Path.home() / ".openclaw"
+AUDIT_LOG = (_openclaw_home if _openclaw_home.exists() else ROOT_DIR / "config") / "logs" / "digest.jsonl"
+
+
+def log_delivery(record: dict) -> None:
+    """Append one JSON line with delivery outcome. Never raises."""
+    try:
+        AUDIT_LOG.parent.mkdir(parents=True, exist_ok=True)
+        record = {"ts": datetime.now().isoformat(timespec="seconds"), **record}
+        with open(AUDIT_LOG, "a") as fh:
+            fh.write(json.dumps(record) + "\n")
+    except Exception:
+        pass
+
 TIER_LABELS = {
     "critical": "CRITICAL",
     "medium": "MEDIUM",
@@ -213,13 +229,22 @@ def main():
         msg = format_digest(tier_entries)
         if not msg:
             continue
-        status = send_telegram(msg, chat_id, bot_token, topic_id=topic_id)
+        entry_count = sum(len(v) for v in tier_entries.values())
+        try:
+            status = send_telegram(msg, chat_id, bot_token, topic_id=topic_id)
+        except Exception as e:
+            log_delivery({"event": "send_exception", "topic_id": topic_id, "entries": entry_count, "error": str(e)[:200]})
+            print(f"Telegram delivery failed ({e}, topic={topic_id}). Buffer NOT cleared.")
+            success = False
+            continue
+        log_delivery({"event": "send", "topic_id": topic_id, "entries": entry_count, "http_status": status, "ok": status == 200})
         if status != 200:
             print(f"Telegram delivery failed (HTTP {status}, topic={topic_id}). Buffer NOT cleared.")
             success = False
 
     if success:
         cleared = clear_buffer(all_entries)
+        log_delivery({"event": "cleared", "entries": len(all_entries), "files": cleared})
         print(f"Delivered digest ({len(all_entries)} entries), cleared {cleared} files.")
         return 0
     else:
