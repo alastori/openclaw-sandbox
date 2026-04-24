@@ -22,18 +22,13 @@
         "api": "openai-completions",
         "models": [
           {
-            "id": "gemma4:26b-a4b-it-q8_0",
-            "name": "Gemma 4 26B MoE Q8",
+            "id": "qwen3.6:35b-a3b-q8_0",
+            "name": "Qwen 3.6 35B A3B Q8",
             "contextWindow": 65536
           },
           {
-            "id": "qwen2.5-coder:32b-instruct-q8_0",
-            "name": "Qwen 2.5 Coder 32B Q8",
-            "contextWindow": 32768
-          },
-          {
-            "id": "qwen3-coder:30b-a3b-q8_0",
-            "name": "Qwen3 Coder 30B A3B Q8",
+            "id": "nemotron-3-super:120b-a12b-q4_K_M",
+            "name": "Nemotron 3 Super (120B A12B)",
             "contextWindow": 65536
           }
         ]
@@ -45,11 +40,12 @@
       "model": {
         "primary": "google/gemini-2.5-flash",
         "fallbacks": [
-          "openai-codex/gpt-5.4",
+          "openai-codex/gpt-5.5",
           "openai/gpt-5.4",
           "anthropic/claude-sonnet-4-6",
-          "anthropic/claude-opus-4-6",
-          "ollama/qwen3-coder:30b-a3b-q8_0"
+          "anthropic/claude-opus-4-7",
+          "ollama/qwen3.6:35b-a3b-q8_0",
+          "ollama/nemotron-3-super:120b-a12b-q4_K_M"
         ]
       },
       "models": {
@@ -62,20 +58,23 @@
             "cacheRetention": "short"
           }
         },
-        "anthropic/claude-opus-4-6": {
-          "alias": "Opus 4.6",
+        "anthropic/claude-opus-4-7": {
+          "alias": "Opus 4.7",
           "params": {
             "cacheRetention": "short"
           }
         },
-        "openai-codex/gpt-5.4": {
-          "alias": "GPT-5.4 Codex"
+        "openai-codex/gpt-5.5": {
+          "alias": "GPT-5.5 Codex"
         },
         "openai/gpt-5.4": {
           "alias": "GPT-5.4 API"
         },
-        "ollama/qwen3-coder:30b-a3b-q8_0": {
-          "alias": "Qwen3 Coder Local"
+        "ollama/qwen3.6:35b-a3b-q8_0": {
+          "alias": "Qwen 3.6 Local"
+        },
+        "ollama/nemotron-3-super:120b-a12b-q4_K_M": {
+          "alias": "Nemotron 3 Super Local"
         },
         "github-copilot/gpt-4o": {
           "alias": "Copilot GPT-4o"

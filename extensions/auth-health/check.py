@@ -2,7 +2,7 @@
 """Probe each pinned model in the failover chain and report auth health.
 
 Designed to be invoked by an OpenClaw cron with the local Ollama model
-(`ollama/qwen3-coder:30b-a3b-q8_0`) so it remains operational even when every
+(`ollama/qwen3.6:35b-a3b-q8_0`) so it remains operational even when every
 hosted provider is broken — that is the precise failure mode it exists to
 detect. Closes the detection gap exposed by the April 2026 cascade incident,
 where Gemini and OpenAI Codex OAuth refresh tokens rotted silently for ~4 days

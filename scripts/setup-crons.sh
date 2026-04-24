@@ -21,7 +21,7 @@ fi
 
 OC="$ROOT_DIR/oc"
 MODEL_LIGHT="google/gemini-2.5-flash"   # Lightweight checks (update, security audit, digest) — subscription
-MODEL_HEAVY="openai-codex/gpt-5.4"      # Reasoning-heavy tasks (doc drift, memory synthesis) — subscription
+MODEL_HEAVY="openai-codex/gpt-5.5"      # Reasoning-heavy tasks (doc drift, memory synthesis) — subscription
 TZ="America/New_York"
 
 existing=$("$OC" cron list 2>/dev/null | tail -n +2 || true)
@@ -79,11 +79,15 @@ create_if_missing "weekly-doc-watch" \
 # --- Monitoring ---
 # These two crons watch the rest of the system. They use the same hosted model
 # as the other crons (`$MODEL_LIGHT`) for one practical reason: only models in
-# the agent's pinned failover chain are allowed for cron payloads, and the only
-# local Ollama model in that chain (qwen3-coder:30b-a3b-q8_0) hallucinates a
-# Llama-style `<function=exec>` tool-call format that OpenClaw does not
-# recognize, causing the cron to silently return `ok` without ever running the
-# script. A monitoring cron that lies about success is worse than no monitoring,
+# the agent's pinned failover chain are allowed for cron payloads, and no
+# local Ollama model in that chain has been verified to return
+# OpenClaw-compatible OpenAI-style `tool_calls` under the gateway's streaming
+# client. The historical precedent was `qwen3-coder:30b-a3b-q8_0`, which
+# hallucinated a Llama-style `<function=exec>` block that OpenClaw dropped,
+# causing the cron to silently return `ok` without ever running the script.
+# The current local pins (qwen3.6, nemotron-3-super) have not been verified
+# either; see ROADMAP.md for the blocker.
+# A monitoring cron that lies about success is worse than no monitoring,
 # so we accept the trade-off: when Gemini itself is broken, these crons go
 # stale, but the cron-list dashboard makes that visible and the morning digest
 # absence is itself a signal.

@@ -40,7 +40,7 @@ Note: `CLAUDE.md` in the project root is a symlink to `AGENTS.md`.
 ```bash
 # 1. Start Ollama and pull a model
 brew services start ollama
-ollama pull qwen3-coder:30b-a3b-q8_0  # or see Recommended Models below
+ollama pull qwen3.6:35b-a3b-q8_0  # or see Recommended Models below
 
 # 2. Clone and set up
 git clone https://github.com/alastori/openclaw-sandbox.git
@@ -71,7 +71,7 @@ Or go directly to `http://127.0.0.1:$OPENCLAW_PORT/` and paste your gateway toke
 macOS Host
 ├── Ollama (native, Metal GPU acceleration)
 │   ├── OpenAI-compatible API on :11434
-│   └── qwen3-coder:30b-a3b-q8_0 (or any model)
+│   └── qwen3.6:35b-a3b-q8_0 (or any model)
 │
 └── Docker Container (sandboxed)
     └── OpenClaw Gateway
@@ -515,7 +515,8 @@ Tested on Apple Silicon with 64+ GB unified memory:
 
 | Model | Approx. RAM (Q8) | Speed | Best For |
 |-------|-------------------|-------|----------|
-| `qwen3-coder:30b-a3b-q8_0` | ~32 GB | ~40-70 tok/s | Agentic tool calling, coding |
+| `qwen3.6:35b-a3b-q8_0` | ~35 GB | ~40-70 tok/s | Agentic tool calling, general (MoE, 3B active) |
+| `nemotron-3-super:120b-a12b-q4_K_M` | ~60 GB | ~15-25 tok/s | Complex agentic reasoning (120B hybrid Mamba-Transformer MoE, 12B active) |
 | `glm4.7:flash` | ~9 GB | ~80+ tok/s | Fast agent loops |
 | `qwen3:32b` | ~34 GB | ~15-25 tok/s | General purpose |
 | `mistral-small3.1` | ~25 GB | ~25-40 tok/s | Multimodal, fast |
@@ -595,12 +596,12 @@ Enable `tools.web.fetch` and `tools.web.search` in `config/openclaw.json` (see [
 The model's context window may be too small. Create a Modelfile to increase it:
 
 ```
-FROM qwen3-coder:30b-a3b-q8_0
+FROM qwen3.6:35b-a3b-q8_0
 PARAMETER num_ctx 65536
 ```
 
 ```bash
-ollama create qwen3-coder-64k -f Modelfile
+ollama create qwen3.6-64k -f Modelfile
 ```
 
 Update `config/openclaw.json` to use the new model name and restart.

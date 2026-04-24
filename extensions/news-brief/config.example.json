@@ -1,7 +1,7 @@
 {
   "telegram_chat_id": "",
   "ollama_url": "http://localhost:11434/api/generate",
-  "ollama_model": "qwen3-coder:30b-a3b-q8_0",
+  "ollama_model": "qwen3.6:35b-a3b-q8_0",
   "max_items_per_feed": 8,
   "sections": [
     {

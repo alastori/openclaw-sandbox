@@ -43,7 +43,7 @@ bash extensions/news-brief/cron-news-brief.sh
 |-----|------|---------|-------------|
 | `telegram_chat_id` | string | (required) | Telegram chat or group ID |
 | `ollama_url` | string | `http://localhost:11434/api/generate` | Ollama API endpoint |
-| `ollama_model` | string | `qwen3-coder:30b-a3b-q8_0` | Model for synthesis |
+| `ollama_model` | string | `qwen3.6:35b-a3b-q8_0` | Model for synthesis |
 | `max_items_per_feed` | int | `8` | Max items fetched per RSS feed |
 | `sections` | array | (see example) | Section definitions with name and feeds |
 | `sections[].name` | string | -- | Section name (e.g., "United States") |

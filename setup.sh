@@ -49,7 +49,7 @@ import sys, json
 data = json.load(sys.stdin)
 for m in data.get('data', []):
     print(f'    - {m[\"id\"]}')
-" 2>/dev/null || echo "    (none -- pull a model with: ollama pull qwen3-coder:30b-a3b-q8_0)"
+" 2>/dev/null || echo "    (none -- pull a model with: ollama pull qwen3.6:35b-a3b-q8_0)"
 else
     echo "  WARNING: Ollama not responding on port 11434."
     echo "  Start Ollama: brew services start ollama"

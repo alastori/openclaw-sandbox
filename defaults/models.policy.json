@@ -11,8 +11,8 @@
     "fallbacks": [
       {
         "provider": "openai-codex",
-        "pinned": "openai-codex/gpt-5.4",
-        "alias": "GPT-5.4 Codex",
+        "pinned": "openai-codex/gpt-5.5",
+        "alias": "GPT-5.5 Codex",
         "familyRegex": "^gpt-5(?:\\.(\\d+))?$",
         "adopt": "notify"
       },
@@ -32,16 +32,23 @@
       },
       {
         "provider": "anthropic",
-        "pinned": "anthropic/claude-opus-4-6",
-        "alias": "Opus 4.6",
+        "pinned": "anthropic/claude-opus-4-7",
+        "alias": "Opus 4.7",
         "familyRegex": "^claude-opus-4",
         "adopt": "manual"
       },
       {
         "provider": "ollama",
-        "pinned": "ollama/qwen3-coder:30b-a3b-q8_0",
-        "alias": "Qwen3 Coder Local",
-        "familyRegex": "^qwen3-coder",
+        "pinned": "ollama/qwen3.6:35b-a3b-q8_0",
+        "alias": "Qwen 3.6 Local",
+        "familyRegex": "^qwen3\\.6",
+        "adopt": "manual"
+      },
+      {
+        "provider": "ollama",
+        "pinned": "ollama/nemotron-3-super:120b-a12b-q4_K_M",
+        "alias": "Nemotron 3 Super Local",
+        "familyRegex": "^nemotron-3",
         "adopt": "manual"
       }
     ]

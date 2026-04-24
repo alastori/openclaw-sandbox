@@ -49,7 +49,7 @@ def load_config() -> dict:
 CONFIG = load_config()
 
 OLLAMA_URL = CONFIG.get("ollama_url", "http://localhost:11434/api/generate")
-OLLAMA_MODEL = CONFIG.get("ollama_model", "qwen3-coder:30b-a3b-q8_0")
+OLLAMA_MODEL = CONFIG.get("ollama_model", "qwen3.6:35b-a3b-q8_0")
 TELEGRAM_CHAT_ID = CONFIG["telegram_chat_id"]
 MAX_ITEMS_PER_FEED = CONFIG.get("max_items_per_feed", 8)
 SECTIONS = CONFIG.get("sections", [])
