@@ -40,10 +40,10 @@
       "model": {
         "primary": "google/gemini-2.5-flash",
         "fallbacks": [
-          "openai-codex/gpt-5.5",
+          "openai-codex/gpt-5.4",
           "openai/gpt-5.4",
           "anthropic/claude-sonnet-4-6",
-          "anthropic/claude-opus-4-7",
+          "anthropic/claude-opus-4-6",
           "ollama/qwen3.6:35b-a3b-q8_0",
           "ollama/nemotron-3-super:120b-a12b-q4_K_M"
         ]
@@ -58,14 +58,14 @@
             "cacheRetention": "short"
           }
         },
-        "anthropic/claude-opus-4-7": {
-          "alias": "Opus 4.7",
+        "anthropic/claude-opus-4-6": {
+          "alias": "Opus 4.6",
           "params": {
             "cacheRetention": "short"
           }
         },
-        "openai-codex/gpt-5.5": {
-          "alias": "GPT-5.5 Codex"
+        "openai-codex/gpt-5.4": {
+          "alias": "GPT-5.4 Codex"
         },
         "openai/gpt-5.4": {
           "alias": "GPT-5.4 API"

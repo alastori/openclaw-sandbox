@@ -73,8 +73,8 @@ Use the right model for the right job. Don't burn frontier tokens on simple task
 
 Each Telegram topic has its own session. Use `/model <alias>` to set the model for a topic:
 - `/model gemini` in General (fast, cheap for everyday chat — subscription)
-- `/model gpt-5.5` in Coding (strong for code generation — subscription via Codex OAuth)
-- `/model gpt-5.5` in Research (strong reasoning — subscription via Codex OAuth)
+- `/model gpt-5.4` in Coding (strong for code generation — subscription via Codex OAuth)
+- `/model gpt-5.4` in Research (strong reasoning — subscription via Codex OAuth)
 - `/model opus` only when Codex isn't cutting it (API-billed, best reasoning — use sparingly)
 
 The model sticks for that topic's session until changed.

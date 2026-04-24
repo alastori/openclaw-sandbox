@@ -1,11 +1,11 @@
 {
-  "$comment": "Model routing reference. Prefer subscription models over API-billed. Fallback chain: Gemini (sub) -> Codex (sub) -> OpenAI API -> Sonnet (API) -> Opus (API) -> Qwen 3.6 local -> Nemotron 3 Super local. API-key GPT-5.5 is not yet available (Apr 2026); the API-key fallback stays on 5.4.",
+  "$comment": "Model routing reference. Prefer subscription models over API-billed. Fallback chain: Gemini (sub) -> Codex (sub) -> OpenAI API -> Sonnet (API) -> Opus (API) -> Qwen 3.6 local -> Nemotron 3 Super local. GPT-5.5 (2026-04-23) and Opus 4.7 (2026-04-16) exist upstream but OpenClaw 2026.4.5's model catalog does not know them yet; pinning either returns 'Unknown model' and falls through. Revisit when OpenClaw ships a catalog refresh.",
   "fallback_chain": [
     { "model": "google/gemini-2.5-flash",               "billing": "subscription", "role": "primary" },
-    { "model": "openai-codex/gpt-5.5",                  "billing": "subscription", "role": "first fallback" },
+    { "model": "openai-codex/gpt-5.4",                  "billing": "subscription", "role": "first fallback" },
     { "model": "openai/gpt-5.4",                        "billing": "api",          "role": "second fallback" },
     { "model": "anthropic/claude-sonnet-4-6",            "billing": "api",          "role": "third fallback" },
-    { "model": "anthropic/claude-opus-4-7",              "billing": "api",          "role": "precision fallback" },
+    { "model": "anthropic/claude-opus-4-6",              "billing": "api",          "role": "precision fallback" },
     { "model": "ollama/qwen3.6:35b-a3b-q8_0",            "billing": "free",         "role": "local last resort" },
     { "model": "ollama/nemotron-3-super:120b-a12b-q4_K_M",         "billing": "free",         "role": "local precision" }
   ],
@@ -15,37 +15,37 @@
       "rationale": "Fast, cheap, good for general conversation. Subscription via google-gemini-cli OAuth."
     },
     "coding": {
-      "model": "openai-codex/gpt-5.5",
-      "rationale": "Strong coding on subscription. 88.7% SWE-bench, 60% fewer hallucinations than 5.4. Use /model gpt-5.5 in Coding topic."
+      "model": "openai-codex/gpt-5.4",
+      "rationale": "Strong coding on subscription. Use /model gpt-5.4 in Coding topic. (GPT-5.5 released 2026-04-23 but not yet in OpenClaw 2026.4.5 catalog.)"
     },
     "deep_research": {
-      "model": "openai-codex/gpt-5.5",
-      "rationale": "Strong reasoning on subscription via Codex OAuth. 92.4% MMLU."
+      "model": "openai-codex/gpt-5.4",
+      "rationale": "Strong reasoning on subscription via Codex OAuth."
     },
     "crons_lightweight": {
       "model": "google/gemini-2.5-flash",
       "rationale": "Lightweight checks. No need for frontier models."
     },
     "crons_heavy": {
-      "model": "openai-codex/gpt-5.5",
+      "model": "openai-codex/gpt-5.4",
       "rationale": "Memory synthesis and doc drift on subscription."
     },
     "precision": {
-      "model": "anthropic/claude-opus-4-7",
-      "rationale": "Best-in-class reasoning; +13% on a 93-task coding benchmark vs Opus 4.6. API-billed at $5/$25 per MTok. Use only when Codex falls short."
+      "model": "anthropic/claude-opus-4-6",
+      "rationale": "Best-in-class reasoning (91% GPQA Diamond). API-billed. Use only when Codex falls short. (Opus 4.7 released 2026-04-16 but not yet in OpenClaw 2026.4.5 catalog.)"
     },
     "local_fallback": {
       "model": "ollama/qwen3.6:35b-a3b-q8_0",
-      "rationale": "Qwen 3.6 35B-A3B MoE: ~3B active params per token for fast inference. Free, local Metal GPU. Released Apr 16 2026. No web tools allowed."
+      "rationale": "Qwen 3.6 35B-A3B MoE: ~3B active params per token for fast inference. Free, local Metal GPU. Released 2026-04-16. OpenAI-compatible tool_calls verified via direct /v1/chat/completions probe."
     },
     "local_precision": {
       "model": "ollama/nemotron-3-super:120b-a12b-q4_K_M",
-      "rationale": "NVIDIA Nemotron 3 Super: 120B hybrid Mamba-Transformer MoE, 12B active. Higher-quality local option when latency is less critical. Verify exact Ollama tag after pull and pin explicit quant for reproducibility."
+      "rationale": "NVIDIA Nemotron 3 Super: 120B hybrid Mamba-Transformer MoE, 12B active. Higher-quality local option when latency is less critical. 86 GB on disk, ~2 min cold-load on 96 GB unified memory."
     }
   },
   "topic_suggestions": {
     "General": "google/gemini-2.5-flash",
-    "Coding": "openai-codex/gpt-5.5",
-    "Research": "openai-codex/gpt-5.5"
+    "Coding": "openai-codex/gpt-5.4",
+    "Research": "openai-codex/gpt-5.4"
   }
 }

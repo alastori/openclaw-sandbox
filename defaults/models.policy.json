@@ -11,8 +11,8 @@
     "fallbacks": [
       {
         "provider": "openai-codex",
-        "pinned": "openai-codex/gpt-5.5",
-        "alias": "GPT-5.5 Codex",
+        "pinned": "openai-codex/gpt-5.4",
+        "alias": "GPT-5.4 Codex",
         "familyRegex": "^gpt-5(?:\\.(\\d+))?$",
         "adopt": "notify"
       },
@@ -32,8 +32,8 @@
       },
       {
         "provider": "anthropic",
-        "pinned": "anthropic/claude-opus-4-7",
-        "alias": "Opus 4.7",
+        "pinned": "anthropic/claude-opus-4-6",
+        "alias": "Opus 4.6",
         "familyRegex": "^claude-opus-4",
         "adopt": "manual"
       },
