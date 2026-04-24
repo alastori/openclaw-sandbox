@@ -62,82 +62,70 @@ reports `healthy`) but `./oc cron list` fails with
 `Cannot find module 'grammy'` and `./oc health` fails with the plugin
 `mkdir` ENOENT.
 
-### Local-model monitoring crons
+### Model catalog refresh (GPT-5.5, Opus 4.7)
 
-**Goal:** Run `nightly-auth-health` and `cascade-detect` (see
-[`scripts/setup-crons.sh`](scripts/setup-crons.sh)) on a local Ollama model
-instead of `google/gemini-2.5-flash`, so they keep firing during the exact
-failure mode they exist to detect: a hosted-provider auth outage that breaks
-every other cron. The April 2026 incident (commit `9ef8bac`, 4-day silent
-cascade) is the precedent.
+**Goal:** Adopt OpenAI GPT-5.5 (released 2026-04-23) and Anthropic Claude
+Opus 4.7 (released 2026-04-16) as soon as OpenClaw's model catalog
+recognises them.
 
-**Current state:** Both monitoring crons run on `google/gemini-2.5-flash`.
-This works in the common case, but goes stale during a Gemini outage. The
-cron-list dashboard and missing morning digest are the externally visible
-signal in that scenario.
+**Current state:** [`defaults/models.policy.json`](defaults/models.policy.json)
+pins `openai-codex/gpt-5.4` and `anthropic/claude-opus-4-6`. We tried
+upgrading to 5.5 and 4.7 on 2026-04-24 and reverted in commit `52260ab`
+because OpenClaw 2026.4.5 returns `Unknown model: openai-codex/gpt-5.5`
+(and the same for `claude-opus-4-7`) at the provider client, before any
+upstream API is hit. The chain falls through to whatever still works.
 
-**Why blocked:** OpenClaw 2026.4.5 has a hardcoded ~60s LLM HTTP request
-timeout in its provider client. Direct Ollama calls return tool calls in
-2-5s warm; the same model called through OpenClaw consistently times out at
-60.6s and falls over to the next chain entry. Verified across all three
-Gemma 4 variants (`e2b-it-q8_0`, `e4b-it-q8_0`, `26b-a4b-it-q8_0`) and
-`qwen3-coder:30b-a3b-q8_0`. The timeout is not exposed via any documented
-config knob (`agents.defaults.timeoutSeconds`, cron `--timeout`,
-`--timeout-seconds`, `injectNumCtxForOpenAICompat`, agent `--light-context`,
-`--tools` allow-list — none bypass it). Likely root cause: OpenClaw's
-streaming client waits for OpenAI-style streaming chunks that Ollama does
-not emit when returning `tool_calls`, so the connection idles until the
-fetch timeout fires.
+**Why blocked:** OpenClaw 2026.4.5's bundled model catalog predates these
+releases. There is no user-facing knob to register an unrecognised model
+id with an existing provider; the catalog ships in the published npm
+package.
 
-**Tool-call format note:** The Gemma 4 family emits correctly-formatted
-OpenAI `tool_calls` (verified via direct `/v1/chat/completions`).
-`qwen3-coder` emits a Llama-style `<function=exec>` block that OpenClaw
-does not parse. So even if the timeout were lifted, qwen3-coder would still
-not be a viable monitoring model: it returns `ok` while silently producing
-output the gateway cannot dispatch as a tool call. Gemma 4 is the right
-family. The timeout is the only blocker.
+**Definition of done:** A released OpenClaw version recognises both
+`openai-codex/gpt-5.5` and `anthropic/claude-opus-4-7` in its catalog.
+At that point repin and retest end-to-end via `./scripts/check-models.sh`
+plus a `./oc cron run <heavy-cron>`.
 
-**Issues to watch:**
+**Retest plan when unblocked:** Apply the same edit set as commit
+`2907d73` (pre-revert state), re-render via
+`scripts/render-secrets-up.sh`, restart the gateway, and confirm the
+heavy crons (`nightly-doc-drift`, `weekly-memory-synthesis`) execute on
+gpt-5.5 instead of cascading.
 
-| Issue | Title | Status |
-|-------|-------|--------|
-| [openclaw/openclaw#43946](https://github.com/openclaw/openclaw/issues/43946) | Configurable LLM request timeout per provider/model | Open |
-| [openclaw/openclaw#59604](https://github.com/openclaw/openclaw/issues/59604) | Requests abort after ~1 minute despite agents.defaults.timeoutSeconds | Open |
-| [openclaw/openclaw#59098](https://github.com/openclaw/openclaw/issues/59098) | Embedded agent times out with Ollama while direct Ollama works | Open |
-| [openclaw/openclaw#52818](https://github.com/openclaw/openclaw/issues/52818) | Ollama cold-start timeout silently exfiltrates data via fallback chain | Open |
-| [openclaw/openclaw#41871](https://github.com/openclaw/openclaw/issues/41871) | Local Ollama models still hang in OpenClaw 2026.3.8 | Open |
-| [openclaw/openclaw#61487](https://github.com/openclaw/openclaw/issues/61487) | LLM HTTP request timeout hardcoded at ~60s | Closed (config workaround that does not generalize) |
+### Cascade-detect monitoring on local Ollama
 
-**Definition of done:** Any one of the following lands in a released
-OpenClaw version, then we retest:
+**Goal:** Run `cascade-detect` on a local Ollama model so it keeps firing
+during a hosted-provider outage. (`nightly-auth-health` already runs on
+`ollama/qwen3.6:35b-a3b-q8_0` as of 2026-04-24; that path is verified.)
 
-1. A provider-level `requestTimeout` / `timeoutMs` field is exposed in the
-   Ollama provider schema (the fix proposed in #43946).
-2. The streaming client falls back to non-streaming mode when the model
-   returns `tool_calls` without emitting incremental deltas.
-3. A per-cron `--llm-request-timeout-ms` flag is added that actually
-   propagates to the HTTP fetch layer.
+**Current state:** `cascade-detect` is back on `google/gemini-2.5-flash`.
+A 2026-04-24 attempt with `ollama/qwen3.6:35b-a3b-q8_0` ran for the full
+5-minute timeout because the model decided to *edit* the script before
+running it (read-only rootfs blocked the write, model retried in a
+loop). `nightly-auth-health` on the same model did not exhibit this
+behaviour: it ran the script, buffered the notification, and returned
+in 40s.
 
-**Retest plan when unblocked:**
+**Why blocked:** Model-behaviour issue specific to the cascade-detect
+prompt-and-script pairing on qwen3.6, not a plumbing issue. The
+ROADMAP's previously-documented 60s hardcoded timeout no longer
+reproduces in OpenClaw 2026.4.5 — qwen3.6 successfully ran a 170s heavy
+cron and a 40s monitoring cron through the gateway on 2026-04-24.
 
-1. `ollama pull gemma4:e2b-it-q8_0` (already pulled as of 2026-04-08).
-2. Pin it as the local fallback in
-   [`templates/openclaw.json.template`](templates/openclaw.json.template)
-   and [`defaults/models.policy.json`](defaults/models.policy.json), with
-   `reasoning: false` and `maxTokens: 8192`.
-3. Set `OLLAMA_KEEP_ALIVE=-1` in
-   `~/Library/LaunchAgents/homebrew.mxcl.ollama.plist` so the model stays
-   warm across requests.
-4. Repoint `nightly-auth-health` and `cascade-detect` in
-   [`scripts/setup-crons.sh`](scripts/setup-crons.sh) from
-   `$MODEL_LIGHT` to `ollama/gemma4:e2b-it-q8_0`.
-5. Run each cron via `./oc cron run <id>` and verify the script actually
-   executed (notification file lands in
-   `config/notifications/{low,medium,critical}/`) and the run summary
-   does not contain a `<function=exec>` hallucination.
+**Definition of done:** Any one of the following:
 
-**Last verified blocked:** 2026-04-08 against OpenClaw 2026.4.5
-(`3e72c03`), Mac Studio M3 with 96 GB unified memory, Ollama 0.20.2.
-Direct `/v1/chat/completions` with `gemma4:e2b-it-q8_0` warm: 2.1s for
-9.5K prompt tokens. OpenClaw cron with the same model warm and the same
-input size: 60.6s timeout, every attempt.
+1. The `cascade-detect` cron runs to completion on a local Ollama model
+   and produces a notification file under
+   `config/notifications/{low,medium,critical}/`.
+2. A different local model (e.g. `gemma4:e2b-it-q8_0`, `nemotron-3-super`)
+   is verified to follow the "just run the script" instruction without
+   attempting edits.
+
+**Retest plan:**
+
+1. Try `cascade-detect` with `--tools exec` (no edit/write tools), pinned
+   to `ollama/qwen3.6:35b-a3b-q8_0`. If the model can't reach the edit
+   tool, the loop should not start.
+2. If qwen3.6 still misbehaves under tool restriction, try
+   `ollama/gemma4:e2b-it-q8_0` (smaller, less coding-biased).
+3. Verify the notification file lands and the run summary mentions
+   actually running `python3 /home/node/extensions/cascade-detect/detect.py`.
