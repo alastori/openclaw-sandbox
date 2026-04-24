@@ -91,41 +91,31 @@ plus a `./oc cron run <heavy-cron>`.
 heavy crons (`nightly-doc-drift`, `weekly-memory-synthesis`) execute on
 gpt-5.5 instead of cascading.
 
-### Cascade-detect monitoring on local Ollama
+### Gateway `logging.file` config ignored
 
-**Goal:** Run `cascade-detect` on a local Ollama model so it keeps firing
-during a hosted-provider outage. (`nightly-auth-health` already runs on
-`ollama/qwen3.6:35b-a3b-q8_0` as of 2026-04-24; that path is verified.)
+**Goal:** Have the gateway honour the `logging.file` path from
+[`defaults/logging.json`](defaults/logging.json) so logs persist across
+container restarts and `cascade-detect` has a stable history window.
 
-**Current state:** `cascade-detect` is back on `google/gemini-2.5-flash`.
-A 2026-04-24 attempt with `ollama/qwen3.6:35b-a3b-q8_0` ran for the full
-5-minute timeout because the model decided to *edit* the script before
-running it (read-only rootfs blocked the write, model retried in a
-loop). `nightly-auth-health` on the same model did not exhibit this
-behaviour: it ran the script, buffered the notification, and returned
-in 40s.
+**Current state:** On startup the gateway announces
+`[gateway] log file: /tmp/openclaw/openclaw-<date>.log` regardless of the
+`logging.file` value read from `openclaw.json`. `./oc config get logging`
+returns the configured path, but the writer targets `/tmp/openclaw/`. To
+work around this we bind-mount `./config/gateway-logs:/tmp/openclaw` in
+[`docker-compose.yml`](docker-compose.yml) so the rotated logs live on
+virtiofs instead of tmpfs. The workaround was applied 2026-04-24; commit
+history has the details.
 
-**Why blocked:** Model-behaviour issue specific to the cascade-detect
-prompt-and-script pairing on qwen3.6, not a plumbing issue. The
-ROADMAP's previously-documented 60s hardcoded timeout no longer
-reproduces in OpenClaw 2026.4.5 — qwen3.6 successfully ran a 170s heavy
-cron and a 40s monitoring cron through the gateway on 2026-04-24.
+**Why blocked:** The provider client ignores the schema-declared
+`logging.file` key. There is no documented override other than changing
+the hardcoded source path (which we can't do from config) or redirecting
+at the filesystem layer (which we did).
 
-**Definition of done:** Any one of the following:
+**Definition of done:** A released OpenClaw version actually writes to
+`logging.file`, at which point we can drop the `/tmp/openclaw` bind mount
+and move logs back under `/home/node/.openclaw/logs/`.
 
-1. The `cascade-detect` cron runs to completion on a local Ollama model
-   and produces a notification file under
-   `config/notifications/{low,medium,critical}/`.
-2. A different local model (e.g. `gemma4:e2b-it-q8_0`, `nemotron-3-super`)
-   is verified to follow the "just run the script" instruction without
-   attempting edits.
-
-**Retest plan:**
-
-1. Try `cascade-detect` with `--tools exec` (no edit/write tools), pinned
-   to `ollama/qwen3.6:35b-a3b-q8_0`. If the model can't reach the edit
-   tool, the loop should not start.
-2. If qwen3.6 still misbehaves under tool restriction, try
-   `ollama/gemma4:e2b-it-q8_0` (smaller, less coding-biased).
-3. Verify the notification file lands and the run summary mentions
-   actually running `python3 /home/node/extensions/cascade-detect/detect.py`.
+**Retest plan:** After an OpenClaw upgrade, `docker compose up -d` without
+the `gateway-logs` mount, then tail `/home/node/.openclaw/logs/openclaw*.log`
+while the gateway is running. If the file mtime advances, the bug is
+fixed and the mount can be removed.

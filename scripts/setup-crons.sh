@@ -20,8 +20,9 @@ if [[ "$CHAT_ID" == "--telegram-chat-id" ]]; then
 fi
 
 OC="$ROOT_DIR/oc"
-MODEL_LIGHT="google/gemini-2.5-flash"   # Lightweight checks (update, security audit, digest) — subscription
-MODEL_HEAVY="openai-codex/gpt-5.4"      # Reasoning-heavy tasks (doc drift, memory synthesis) — subscription
+MODEL_LIGHT="google/gemini-2.5-flash"         # Lightweight checks (update, security audit, digest) — subscription
+MODEL_HEAVY="openai-codex/gpt-5.4"            # Reasoning-heavy tasks (doc drift, memory synthesis) — subscription
+MODEL_MONITOR="ollama/qwen3.6:35b-a3b-q8_0"   # Monitoring crons — local so they survive hosted outages
 TZ="America/New_York"
 
 existing=$("$OC" cron list 2>/dev/null | tail -n +2 || true)
@@ -77,30 +78,29 @@ create_if_missing "weekly-doc-watch" \
   --message "Run this command exactly: python3 /home/node/extensions/doc-watch/doc-watch.py. It checks if prompting guidelines from Anthropic, OpenAI, and Google have been updated. The script handles notification buffering on its own. Just run it and report the output."
 
 # --- Monitoring ---
-# These two crons watch the rest of the system. They use the same hosted model
-# as the other crons (`$MODEL_LIGHT`) for one practical reason: only models in
-# the agent's pinned failover chain are allowed for cron payloads, and no
-# local Ollama model in that chain has been verified to return
-# OpenClaw-compatible OpenAI-style `tool_calls` under the gateway's streaming
-# client. The historical precedent was `qwen3-coder:30b-a3b-q8_0`, which
-# hallucinated a Llama-style `<function=exec>` block that OpenClaw dropped,
-# causing the cron to silently return `ok` without ever running the script.
-# The current local pins (qwen3.6, nemotron-3-super) have not been verified
-# either; see ROADMAP.md for the blocker.
-# A monitoring cron that lies about success is worse than no monitoring,
-# so we accept the trade-off: when Gemini itself is broken, these crons go
-# stale, but the cron-list dashboard makes that visible and the morning digest
-# absence is itself a signal.
+# These two crons watch the rest of the system. They run on a local Ollama
+# model (`$MODEL_MONITOR`) so they keep firing during the exact failure mode
+# they exist to detect: a hosted-provider auth or rate-limit outage that
+# breaks every other cron. The April 2026 cascade incident (commit `9ef8bac`,
+# 4-day silent outage) is the precedent.
+#
+# Verified 2026-04-24 on OpenClaw 2026.4.5 + ollama/qwen3.6:35b-a3b-q8_0:
+#   nightly-auth-health ran in ~40s, produced the expected notification file.
+#   cascade-detect only works with `--tools exec`; without that restriction
+#   qwen3.6 tries to edit the script (rootfs is read-only, loops to timeout).
+# Earlier Ollama+OpenClaw combos had a hardcoded ~60s streaming timeout and a
+# qwen3-coder tool-call format bug; neither reproduces in the current stack.
 
 create_if_missing "nightly-auth-health" \
   --cron "0 6 * * *" --tz "$TZ" \
-  --model "$MODEL_LIGHT" --thinking off --timeout-seconds 60 \
+  --model "$MODEL_MONITOR" --thinking off --timeout-seconds 180 \
   --no-deliver \
   --message "Run this command exactly: python3 /home/node/extensions/auth-health/check.py. The script handles notification buffering on its own. Just run it."
 
 create_if_missing "cascade-detect" \
   --cron "*/30 * * * *" --tz "$TZ" \
-  --model "$MODEL_LIGHT" --thinking off --timeout-seconds 60 \
+  --model "$MODEL_MONITOR" --thinking off --timeout-seconds 180 \
+  --tools exec \
   --no-deliver \
   --message "Run this command exactly: python3 /home/node/extensions/cascade-detect/detect.py. The script handles notification buffering on its own. Just run it."
 
