@@ -39,12 +39,21 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# --allow-from is optional on the CLI; fall back to TELEGRAM_ALLOW_FROM from
-# the environment (sourced by scripts/load-local-env.sh from
-# .env.instance.local) so operators don't have to repeat it on every run.
+# Both flags are optional on the CLI; fall back to TELEGRAM_GROUP_ID /
+# TELEGRAM_ALLOW_FROM from the environment (sourced by
+# scripts/load-local-env.sh from .env.instance.local) so operators don't
+# have to repeat them on every run.
+if [[ -z "$CHAT_ID" && -n "${TELEGRAM_GROUP_ID:-}" ]]; then
+  CHAT_ID="$TELEGRAM_GROUP_ID"
+fi
 if [[ -z "$ALLOW_FROM" && -n "${TELEGRAM_ALLOW_FROM:-}" ]]; then
   ALLOW_FROM="$TELEGRAM_ALLOW_FROM"
 fi
+
+# Normalize ALLOW_FROM to a space-free comma-separated list. Persisting
+# "123, 456" verbatim to .env.instance.local would break the next
+# `source` (the shell would treat 456 as a command under set -e).
+ALLOW_FROM="$(printf '%s' "$ALLOW_FROM" | tr -d '[:space:]')"
 
 # Activating a group while channels.telegram.groupAllowFrom is empty
 # leaves slash/native commands callable by any member of that group in
