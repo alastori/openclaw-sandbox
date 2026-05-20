@@ -354,7 +354,7 @@ If your shell runner does not preserve `cd` between commands, run the `cd` and a
 cd /path/to/openclaw-sandbox && ./oc pairing approve telegram YOUR_CODE
 ```
 
-A DM-only setup may still log a startup warning if `groupPolicy` is set to `"allowlist"` without any group allowlist entries. That is expected and harmless if you do not plan to use the bot in group chats.
+A fresh deploy ships with `groupPolicy: "disabled"`, which is the safe DM-only default and produces no startup warning. After you switch to `"allowlist"` (e.g., via `scripts/setup-telegram-topics.sh`), Telegram may log a startup warning until `groupAllowFrom` has at least one sender; that warning is expected mid-setup and harmless.
 Do not run two instances with the same Telegram bot token enabled unless you explicitly want them competing for updates.
 
 </details>
@@ -404,7 +404,12 @@ TELEGRAM_GROUP_ID=<GROUP_CHAT_ID>
 
 Then re-render: `bash scripts/render-secrets-up.sh`
 
-The template sets `groupPolicy: "allowlist"` with empty `groups` and `groupAllowFrom` so a fresh deploy will not respond in any group until one is explicitly added. Per upstream Telegram docs, `groups` is the chat allowlist (which chats the bot responds in) and `groupAllowFrom` is the sender allowlist (which user IDs may message it). `scripts/setup-telegram-topics.sh` (or a manual edit) appends your group chat ID to `groups` and sets `requireMention: false` on that entry. If you also want to restrict who can message in that group, add their user IDs to `groupAllowFrom`.
+The template sets `groupPolicy: "disabled"` with empty `groups` and `groupAllowFrom`. Per upstream Telegram docs, `"disabled"` means the bot rejects all group messages, so a fresh deploy is DM-only. To enable group access:
+
+1. Run `scripts/setup-telegram-topics.sh`. It adds your chat ID to `channels.telegram.groups` and switches `groupPolicy` to `"allowlist"`.
+2. Add your Telegram user ID (and any other allowed senders) to `channels.telegram.groupAllowFrom`. With `groupPolicy: "allowlist"`, OpenClaw drops every group message until at least one sender is approved there.
+
+Both lists matter: `groups` controls which chats the bot will respond in, and `groupAllowFrom` controls which user IDs may message it within those chats.
 
 7. Update `extensions/notifications/config.json` with topic IDs:
 

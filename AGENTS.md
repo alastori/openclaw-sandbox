@@ -101,7 +101,7 @@ Default crons are created by `scripts/setup-crons.sh`. All nightly crons buffer 
 
 ### Telegram
 
-- Telegram may warn at startup when `groupPolicy` is `"allowlist"` and no group allowlist is configured; this is expected for DM-only use and group messages will simply be dropped unless explicitly enabled later.
+- Fresh deploys ship with `groupPolicy: "disabled"`; the bot is DM-only until `scripts/setup-telegram-topics.sh` (or a manual edit) switches it to `"allowlist"` and populates `groups` plus `groupAllowFrom`. With `"allowlist"` and no senders approved yet, Telegram may log a startup warning and group messages will be dropped; that is expected mid-setup.
 - **Telegram topics:** Run `bash scripts/setup-telegram-topics.sh` after adding the bot to a Telegram group with Topics enabled. Creates "Ops" and "Alerts" topics, routes critical notifications to Alerts and routine digests to Ops. See README for manual prerequisites.
 
 ### Security
