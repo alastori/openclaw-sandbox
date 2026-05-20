@@ -203,6 +203,22 @@ else:
 "
 fi
 
+# --- Persist TELEGRAM_GROUP_ID in .env.instance.local so re-renders preserve it ---
+INSTANCE_ENV="$ROOT_DIR/.env.instance.local"
+if [[ -f "$INSTANCE_ENV" ]]; then
+  if grep -qE '^TELEGRAM_GROUP_ID=' "$INSTANCE_ENV"; then
+    # Replace existing value (handles empty value too).
+    sed -i.bak "s|^TELEGRAM_GROUP_ID=.*|TELEGRAM_GROUP_ID=${CHAT_ID}|" "$INSTANCE_ENV"
+    rm -f "$INSTANCE_ENV.bak"
+    echo "  Updated TELEGRAM_GROUP_ID in .env.instance.local"
+  else
+    printf '\nTELEGRAM_GROUP_ID=%s\n' "$CHAT_ID" >> "$INSTANCE_ENV"
+    echo "  Appended TELEGRAM_GROUP_ID to .env.instance.local"
+  fi
+else
+  echo "  Note: .env.instance.local not found; set TELEGRAM_GROUP_ID=$CHAT_ID there so re-renders preserve the group."
+fi
+
 echo ""
 echo "Done! Topics are set up:"
 echo ""

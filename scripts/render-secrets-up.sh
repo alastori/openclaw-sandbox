@@ -114,8 +114,29 @@ chmod 600 "$config_tmp"
 : "${TELEGRAM_GROUP_ID:=}"
 sed -i.bak "s|\${TELEGRAM_BOT_NAME}|${TELEGRAM_BOT_NAME}|g" "$config_tmp"
 sed -i.bak "s|\${OPENCLAW_PORT}|${OPENCLAW_PORT}|g" "$config_tmp"
-sed -i.bak "s|\${TELEGRAM_GROUP_ID}|${TELEGRAM_GROUP_ID}|g" "$config_tmp"
 rm -f "$config_tmp.bak"
+
+# If a Telegram group ID is configured, persist it into
+# channels.telegram.groups so it survives re-renders. The template ships
+# with an empty groups object; setup-telegram-topics.sh writes both the
+# rendered config and .env.instance.local, so subsequent renders pick it
+# up here.
+if [[ -n "${TELEGRAM_GROUP_ID}" ]]; then
+  python3 -c "
+import json, sys
+path = '$config_tmp'
+with open(path) as f:
+    cfg = json.load(f)
+tg = cfg.setdefault('channels', {}).setdefault('telegram', {})
+groups = tg.setdefault('groups', {})
+chat_id = '${TELEGRAM_GROUP_ID}'
+if chat_id not in groups:
+    groups[chat_id] = {'requireMention': False}
+    with open(path, 'w') as f:
+        json.dump(cfg, f, indent=2)
+        f.write('\n')
+"
+fi
 
 python3 scripts/apply-model-policy.py "$config_tmp" "$MODEL_POLICY_FILE"
 python3 scripts/apply-defaults.py "$config_tmp" "$DEFAULTS_DIR"
