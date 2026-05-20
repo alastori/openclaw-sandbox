@@ -16,7 +16,7 @@
 #   2. Discovers the group chat ID from recent bot updates (or uses --chat-id)
 #   3. Creates "Ops" and "Alerts" topics via the Telegram Bot API
 #   4. Updates extensions/notifications/config.json with topic IDs
-#   5. Adds the group to channels.telegram.groupAllowFrom in config/openclaw.json
+#   5. Adds the group chat ID to channels.telegram.groups in config/openclaw.json
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -174,9 +174,14 @@ with open('$NOTIFY_CONFIG', 'w') as f:
 print('  Updated: chat_id=$CHAT_ID, ops=$OPS_TOPIC, alerts=$ALERTS_TOPIC')
 "
 
-# --- Update OpenClaw config groupAllowFrom ---
+# --- Update OpenClaw config groups (chat-id allowlist) ---
+# Per upstream docs/channels/telegram.md: channels.telegram.groups is the
+# group/chat allowlist (which chats the bot will respond in), while
+# channels.telegram.groupAllowFrom is the sender allowlist (which user IDs
+# are allowed to message). The chat ID belongs in `groups`, not
+# `groupAllowFrom`.
 echo ""
-echo "Updating config/openclaw.json groupAllowFrom..."
+echo "Updating config/openclaw.json telegram.groups..."
 
 OC_CONFIG="$ROOT_DIR/config/openclaw.json"
 if [[ -f "$OC_CONFIG" ]]; then
@@ -185,17 +190,16 @@ import json
 with open('$OC_CONFIG') as f:
     cfg = json.load(f)
 tg = cfg.setdefault('channels', {}).setdefault('telegram', {})
-allow = tg.get('groupAllowFrom', [])
+groups = tg.setdefault('groups', {})
 chat_id = '$CHAT_ID'
-if chat_id not in allow:
-    allow.append(chat_id)
-    tg['groupAllowFrom'] = allow
+if chat_id not in groups:
+    groups[chat_id] = {'requireMention': False}
     with open('$OC_CONFIG', 'w') as f:
         json.dump(cfg, f, indent=2)
         f.write('\n')
-    print(f'  Added {chat_id} to groupAllowFrom')
+    print(f'  Added {chat_id} to channels.telegram.groups')
 else:
-    print(f'  {chat_id} already in groupAllowFrom')
+    print(f'  {chat_id} already in channels.telegram.groups')
 "
 fi
 

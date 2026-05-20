@@ -404,7 +404,7 @@ TELEGRAM_GROUP_ID=<GROUP_CHAT_ID>
 
 Then re-render: `bash scripts/render-secrets-up.sh`
 
-The template sets `groupPolicy: "allowlist"` with an empty `groups`/`groupAllowFrom` so a fresh deploy will not respond in any group until one is explicitly added. `scripts/setup-telegram-topics.sh` (or manual edit) appends your group chat ID to `groupAllowFrom`. If you want the bot to respond without @mentions in an allowed group, set `requireMention: false` in that group's entry under `groups`.
+The template sets `groupPolicy: "allowlist"` with empty `groups` and `groupAllowFrom` so a fresh deploy will not respond in any group until one is explicitly added. Per upstream Telegram docs, `groups` is the chat allowlist (which chats the bot responds in) and `groupAllowFrom` is the sender allowlist (which user IDs may message it). `scripts/setup-telegram-topics.sh` (or a manual edit) appends your group chat ID to `groups` and sets `requireMention: false` on that entry. If you also want to restrict who can message in that group, add their user IDs to `groupAllowFrom`.
 
 7. Update `extensions/notifications/config.json` with topic IDs:
 
