@@ -8,27 +8,61 @@
 #   4. Send any message in the group so the bot can discover the chat ID
 #
 # Usage:
-#   bash scripts/setup-telegram-topics.sh
-#   bash scripts/setup-telegram-topics.sh --chat-id -100123456789
+#   bash scripts/setup-telegram-topics.sh --allow-from <id[,id...]>
+#   bash scripts/setup-telegram-topics.sh --chat-id -100123456789 --allow-from 1234567
+#   TELEGRAM_ALLOW_FROM=1234567 bash scripts/setup-telegram-topics.sh   # via .env
 #
 # What this script does:
 #   1. Reads the bot token from .runtime/openclaw.env or config/openclaw.json
 #   2. Discovers the group chat ID from recent bot updates (or uses --chat-id)
 #   3. Creates "Ops" and "Alerts" topics via the Telegram Bot API
 #   4. Updates extensions/notifications/config.json with topic IDs
-#   5. Adds the group chat ID to channels.telegram.groups in config/openclaw.json
+#   5. Adds the group chat ID to channels.telegram.groups, switches
+#      groupPolicy to "allowlist", and writes --allow-from /
+#      TELEGRAM_ALLOW_FROM into channels.telegram.groupAllowFrom. The
+#      script refuses to enable group access without senders.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+# shellcheck source=load-local-env.sh
+source "$ROOT_DIR/scripts/load-local-env.sh"
+
 CHAT_ID=""
+ALLOW_FROM=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --chat-id) CHAT_ID="$2"; shift 2 ;;
+    --allow-from) ALLOW_FROM="$2"; shift 2 ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
 done
+
+# --allow-from is optional on the CLI; fall back to TELEGRAM_ALLOW_FROM from
+# the environment (sourced by scripts/load-local-env.sh from
+# .env.instance.local) so operators don't have to repeat it on every run.
+if [[ -z "$ALLOW_FROM" && -n "${TELEGRAM_ALLOW_FROM:-}" ]]; then
+  ALLOW_FROM="$TELEGRAM_ALLOW_FROM"
+fi
+
+# Activating a group while channels.telegram.groupAllowFrom is empty
+# leaves slash/native commands callable by any member of that group in
+# OpenClaw's current Telegram command auth path (empty effective allow
+# list is treated as allowed). Refuse to enable group access without
+# explicit senders.
+if [[ -z "$ALLOW_FROM" ]]; then
+  cat >&2 <<'EOF'
+error: refusing to enable group access with an empty groupAllowFrom.
+       With groupPolicy: "allowlist" and no approved senders,
+       slash/native commands would be exposed to every member of the
+       configured group.
+       Pass the operator's Telegram user ID(s) (comma-separated) via
+       --allow-from <id[,id...]>, or set TELEGRAM_ALLOW_FROM in
+       .env.instance.local before re-running.
+EOF
+  exit 1
+fi
 
 # --- Resolve bot token ---
 get_bot_token() {
@@ -193,9 +227,9 @@ tg = cfg.setdefault('channels', {}).setdefault('telegram', {})
 
 changed = False
 
-# Migrate legacy 'open' policy + wildcard to the allowlist defaults from
-# templates/openclaw.json.template. Without this migration, the explicit
-# chat ID added below is shadowed by the wildcard and 'open' senders.
+# Migrate legacy 'open'/'disabled' policy + any wildcard to the allowlist
+# defaults from templates/openclaw.json.template. Without this migration the
+# explicit chat ID added below is shadowed by the wildcard and 'open' senders.
 if tg.get('groupPolicy') != 'allowlist':
     tg['groupPolicy'] = 'allowlist'
     changed = True
@@ -212,6 +246,18 @@ if chat_id not in groups:
 else:
     print(f'  {chat_id} already in channels.telegram.groups')
 
+# Sender allowlist: merge any pre-existing entries with the operator-supplied
+# IDs from --allow-from / TELEGRAM_ALLOW_FROM so we never leave the bot in the
+# unsafe 'allowlist + empty groupAllowFrom' state (which exposes slash/native
+# commands per upstream Telegram command auth).
+existing = tg.get('groupAllowFrom') or []
+new_ids = [s.strip() for s in '$ALLOW_FROM'.split(',') if s.strip()]
+merged = list(dict.fromkeys(list(existing) + new_ids))
+if merged != list(existing):
+    tg['groupAllowFrom'] = merged
+    changed = True
+    print(f'  Set channels.telegram.groupAllowFrom = {merged}')
+
 if changed:
     with open('$OC_CONFIG', 'w') as f:
         json.dump(cfg, f, indent=2)
@@ -222,18 +268,23 @@ fi
 
 # --- Persist TELEGRAM_GROUP_ID in .env.instance.local so re-renders preserve it ---
 INSTANCE_ENV="$ROOT_DIR/.env.instance.local"
-if [[ -f "$INSTANCE_ENV" ]]; then
-  if grep -qE '^TELEGRAM_GROUP_ID=' "$INSTANCE_ENV"; then
-    # Replace existing value (handles empty value too).
-    sed -i.bak "s|^TELEGRAM_GROUP_ID=.*|TELEGRAM_GROUP_ID=${CHAT_ID}|" "$INSTANCE_ENV"
+persist_kv() {
+  local key="$1" value="$2"
+  if grep -qE "^${key}=" "$INSTANCE_ENV"; then
+    sed -i.bak "s|^${key}=.*|${key}=${value}|" "$INSTANCE_ENV"
     rm -f "$INSTANCE_ENV.bak"
-    echo "  Updated TELEGRAM_GROUP_ID in .env.instance.local"
+    echo "  Updated ${key} in .env.instance.local"
   else
-    printf '\nTELEGRAM_GROUP_ID=%s\n' "$CHAT_ID" >> "$INSTANCE_ENV"
-    echo "  Appended TELEGRAM_GROUP_ID to .env.instance.local"
+    printf '\n%s=%s\n' "$key" "$value" >> "$INSTANCE_ENV"
+    echo "  Appended ${key} to .env.instance.local"
   fi
+}
+
+if [[ -f "$INSTANCE_ENV" ]]; then
+  persist_kv "TELEGRAM_GROUP_ID" "$CHAT_ID"
+  persist_kv "TELEGRAM_ALLOW_FROM" "$ALLOW_FROM"
 else
-  echo "  Note: .env.instance.local not found; set TELEGRAM_GROUP_ID=$CHAT_ID there so re-renders preserve the group."
+  echo "  Note: .env.instance.local not found; set TELEGRAM_GROUP_ID=$CHAT_ID and TELEGRAM_ALLOW_FROM=$ALLOW_FROM there so re-renders preserve the group."
 fi
 
 echo ""
@@ -250,10 +301,6 @@ echo "    General:  (default topic, already exists)"
 echo ""
 echo "Restart the gateway to pick up the group allowlist change:"
 echo "  docker compose restart"
-echo ""
-echo "Note: groupPolicy=allowlist restricts who can MESSAGE the bot."
-echo "If 'channels.telegram.groupAllowFrom' is empty, no senders are"
-echo "permitted yet. Add your Telegram user ID(s) there to enable chat."
 echo ""
 echo "Tip: In each topic, send /model <alias> to set the preferred model:"
 echo "  General:  /model gemini  (fast, everyday chat — subscription)"

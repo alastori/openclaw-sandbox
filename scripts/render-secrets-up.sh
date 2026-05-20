@@ -126,6 +126,19 @@ rm -f "$config_tmp.bak"
 #   - channels.telegram.groups[<chat-id>] = { requireMention: false }
 #   - channels.telegram.groupAllowFrom = [<user-ids>]
 : "${TELEGRAM_ALLOW_FROM:=}"
+if [[ -n "${TELEGRAM_GROUP_ID}" && -z "${TELEGRAM_ALLOW_FROM}" ]]; then
+  cat >&2 <<'EOF'
+error: TELEGRAM_GROUP_ID is set but TELEGRAM_ALLOW_FROM is empty.
+       Activating a group with groupPolicy: "allowlist" and an empty
+       channels.telegram.groupAllowFrom exposes slash/native commands
+       to every member of the configured group in OpenClaw's Telegram
+       command auth path.
+       Set TELEGRAM_ALLOW_FROM=<comma-separated Telegram user IDs> in
+       .env.instance.local, then re-run scripts/render-secrets-up.sh.
+EOF
+  exit 1
+fi
+
 if [[ -n "${TELEGRAM_GROUP_ID}" ]]; then
   python3 -c "
 import json
