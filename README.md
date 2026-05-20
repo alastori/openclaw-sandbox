@@ -396,18 +396,16 @@ Look for `message.chat.id` (group ID, negative number) and `message.message_thre
    - In Telegram, message `@BotFather` → `/setprivacy` → select your bot → `Disable`
    - **Remove and re-add the bot** to the group (Telegram only applies the change on re-join)
 
-6. Add the group ID to `.env.instance.local`:
+6. Enable group access in `.env.instance.local` (both variables are required together — `render-secrets-up.sh` aborts if `TELEGRAM_GROUP_ID` is set without `TELEGRAM_ALLOW_FROM`):
 
 ```bash
 TELEGRAM_GROUP_ID=<GROUP_CHAT_ID>
+TELEGRAM_ALLOW_FROM=<your_telegram_user_id>[,<another_user_id>...]
 ```
 
 Then re-render: `bash scripts/render-secrets-up.sh`
 
-The template sets `groupPolicy: "disabled"` with empty `groups` and `groupAllowFrom`. Per upstream Telegram docs, `"disabled"` means the bot rejects all group messages, so a fresh deploy is DM-only. To enable group access durably (so it survives a re-render):
-
-1. Set `TELEGRAM_GROUP_ID=<chat-id>` and `TELEGRAM_ALLOW_FROM=<comma-separated user IDs>` in `.env.instance.local`. `scripts/render-secrets-up.sh` reads both: when `TELEGRAM_GROUP_ID` is non-empty it flips `groupPolicy` to `"allowlist"`, adds the chat ID to `channels.telegram.groups`, and writes `TELEGRAM_ALLOW_FROM` into `channels.telegram.groupAllowFrom`.
-2. Run `scripts/setup-telegram-topics.sh` to create the Ops/Alerts topics. It also patches the live config and persists `TELEGRAM_GROUP_ID` back to `.env.instance.local` for you. `TELEGRAM_ALLOW_FROM` is operator-managed.
+The template sets `groupPolicy: "disabled"` with empty `groups` and `groupAllowFrom`, so a fresh deploy is DM-only. When `TELEGRAM_GROUP_ID` and `TELEGRAM_ALLOW_FROM` are both set, the renderer flips `groupPolicy` to `"allowlist"`, adds the chat ID to `channels.telegram.groups`, and writes the sender IDs into `channels.telegram.groupAllowFrom`. `scripts/setup-telegram-topics.sh` (run next) creates the Ops/Alerts topics and persists both values back to `.env.instance.local` for you.
 
 Both lists matter: `groups` controls which chats the bot responds in, and `groupAllowFrom` controls which user IDs may message it within those chats. **Never switch `groupPolicy` to `"allowlist"` with an empty `groupAllowFrom`.** Ordinary group messages are dropped in that state, but OpenClaw's command-auth path treats an empty sender list as allowed, so slash and native commands stay callable by every member of the configured group. The render and setup scripts refuse to land in that state; if you edit `config/openclaw.json` by hand, add at least one Telegram user ID to `groupAllowFrom` before you flip the policy.
 

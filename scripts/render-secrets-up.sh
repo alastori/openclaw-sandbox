@@ -37,8 +37,23 @@ cd "$ROOT_DIR"
 MODEL_POLICY_FILE="${MODEL_POLICY_FILE:-defaults/models.policy.json}"
 DEFAULTS_DIR="${DEFAULTS_DIR:-defaults}"
 
+# Capture any caller-supplied Telegram allowlist values before sourcing
+# .env.instance.local, which would otherwise clobber an inline
+# `TELEGRAM_ALLOW_FROM=123 bash scripts/render-secrets-up.sh` with the
+# blank entry in the example file.
+_CLI_TELEGRAM_GROUP_ID="${TELEGRAM_GROUP_ID:-}"
+_CLI_TELEGRAM_ALLOW_FROM="${TELEGRAM_ALLOW_FROM:-}"
+
 # shellcheck disable=SC1091
 source "$ROOT_DIR/scripts/load-local-env.sh"
+
+if [[ -n "$_CLI_TELEGRAM_GROUP_ID" && -z "${TELEGRAM_GROUP_ID:-}" ]]; then
+  TELEGRAM_GROUP_ID="$_CLI_TELEGRAM_GROUP_ID"
+fi
+if [[ -n "$_CLI_TELEGRAM_ALLOW_FROM" && -z "${TELEGRAM_ALLOW_FROM:-}" ]]; then
+  TELEGRAM_ALLOW_FROM="$_CLI_TELEGRAM_ALLOW_FROM"
+fi
+unset _CLI_TELEGRAM_GROUP_ID _CLI_TELEGRAM_ALLOW_FROM
 
 case "$ROOT_DIR" in
   /tmp/*|/private/tmp/*)

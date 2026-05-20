@@ -26,8 +26,24 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+# Capture any caller-supplied env values before sourcing .env.instance.local,
+# which uses `set -a; source ...; set +a` and would otherwise clobber an
+# inline `TELEGRAM_ALLOW_FROM=123 bash ...` with a blank entry in the file.
+_CLI_TELEGRAM_GROUP_ID="${TELEGRAM_GROUP_ID:-}"
+_CLI_TELEGRAM_ALLOW_FROM="${TELEGRAM_ALLOW_FROM:-}"
+
 # shellcheck source=load-local-env.sh
 source "$ROOT_DIR/scripts/load-local-env.sh"
+
+# Restore caller-supplied values where they were non-empty and the sourced
+# file left the variable blank.
+if [[ -n "$_CLI_TELEGRAM_GROUP_ID" && -z "${TELEGRAM_GROUP_ID:-}" ]]; then
+  TELEGRAM_GROUP_ID="$_CLI_TELEGRAM_GROUP_ID"
+fi
+if [[ -n "$_CLI_TELEGRAM_ALLOW_FROM" && -z "${TELEGRAM_ALLOW_FROM:-}" ]]; then
+  TELEGRAM_ALLOW_FROM="$_CLI_TELEGRAM_ALLOW_FROM"
+fi
+unset _CLI_TELEGRAM_GROUP_ID _CLI_TELEGRAM_ALLOW_FROM
 
 CHAT_ID=""
 ALLOW_FROM=""
