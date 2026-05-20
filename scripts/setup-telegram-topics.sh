@@ -190,16 +190,33 @@ import json
 with open('$OC_CONFIG') as f:
     cfg = json.load(f)
 tg = cfg.setdefault('channels', {}).setdefault('telegram', {})
+
+changed = False
+
+# Migrate legacy 'open' policy + wildcard to the allowlist defaults from
+# templates/openclaw.json.template. Without this migration, the explicit
+# chat ID added below is shadowed by the wildcard and 'open' senders.
+if tg.get('groupPolicy') != 'allowlist':
+    tg['groupPolicy'] = 'allowlist'
+    changed = True
 groups = tg.setdefault('groups', {})
+if '*' in groups:
+    del groups['*']
+    changed = True
+
 chat_id = '$CHAT_ID'
 if chat_id not in groups:
     groups[chat_id] = {'requireMention': False}
-    with open('$OC_CONFIG', 'w') as f:
-        json.dump(cfg, f, indent=2)
-        f.write('\n')
+    changed = True
     print(f'  Added {chat_id} to channels.telegram.groups')
 else:
     print(f'  {chat_id} already in channels.telegram.groups')
+
+if changed:
+    with open('$OC_CONFIG', 'w') as f:
+        json.dump(cfg, f, indent=2)
+        f.write('\n')
+    print('  channels.telegram.groupPolicy=allowlist, wildcard removed if present')
 "
 fi
 
@@ -233,6 +250,10 @@ echo "    General:  (default topic, already exists)"
 echo ""
 echo "Restart the gateway to pick up the group allowlist change:"
 echo "  docker compose restart"
+echo ""
+echo "Note: groupPolicy=allowlist restricts who can MESSAGE the bot."
+echo "If 'channels.telegram.groupAllowFrom' is empty, no senders are"
+echo "permitted yet. Add your Telegram user ID(s) there to enable chat."
 echo ""
 echo "Tip: In each topic, send /model <alias> to set the preferred model:"
 echo "  General:  /model gemini  (fast, everyday chat — subscription)"
