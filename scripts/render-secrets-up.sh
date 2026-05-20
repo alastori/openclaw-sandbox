@@ -126,6 +126,15 @@ rm -f "$config_tmp.bak"
 #   - channels.telegram.groups[<chat-id>] = { requireMention: false }
 #   - channels.telegram.groupAllowFrom = [<user-ids>]
 : "${TELEGRAM_ALLOW_FROM:=}"
+# Normalize the same way setup-telegram-topics.sh does so a value that
+# is only whitespace/separators (e.g. ",") doesn't slip past the check
+# and produce an empty channels.telegram.groupAllowFrom.
+TELEGRAM_ALLOW_FROM="$(printf '%s' "$TELEGRAM_ALLOW_FROM" | tr -d '[:space:]' \
+  | awk -F, '{
+      out=""; sep="";
+      for (i=1; i<=NF; i++) if ($i != "") { out = out sep $i; sep = "," }
+      print out
+    }')"
 if [[ -n "${TELEGRAM_GROUP_ID}" && -z "${TELEGRAM_ALLOW_FROM}" ]]; then
   cat >&2 <<'EOF'
 error: TELEGRAM_GROUP_ID is set but TELEGRAM_ALLOW_FROM is empty.

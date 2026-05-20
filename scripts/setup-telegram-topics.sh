@@ -50,10 +50,19 @@ if [[ -z "$ALLOW_FROM" && -n "${TELEGRAM_ALLOW_FROM:-}" ]]; then
   ALLOW_FROM="$TELEGRAM_ALLOW_FROM"
 fi
 
-# Normalize ALLOW_FROM to a space-free comma-separated list. Persisting
-# "123, 456" verbatim to .env.instance.local would break the next
-# `source` (the shell would treat 456 as a command under set -e).
-ALLOW_FROM="$(printf '%s' "$ALLOW_FROM" | tr -d '[:space:]')"
+# Normalize ALLOW_FROM to a space-free comma-separated list, then collapse
+# stray separators (",,", trailing/leading commas). Persisting "123, 456"
+# verbatim to .env.instance.local would break the next `source` (the
+# shell would treat 456 as a command under set -e); and a value that is
+# only separators (e.g. ",") must not survive the non-empty check below
+# because the JSON patcher would later parse it to zero senders and
+# silently land in the unsafe allowlist + empty groupAllowFrom state.
+ALLOW_FROM="$(printf '%s' "$ALLOW_FROM" | tr -d '[:space:]' \
+  | awk -F, '{
+      out=""; sep="";
+      for (i=1; i<=NF; i++) if ($i != "") { out = out sep $i; sep = "," }
+      print out
+    }')"
 
 # Activating a group while channels.telegram.groupAllowFrom is empty
 # leaves slash/native commands callable by any member of that group in
