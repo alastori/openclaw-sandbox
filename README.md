@@ -404,7 +404,7 @@ TELEGRAM_GROUP_ID=<GROUP_CHAT_ID>
 
 Then re-render: `bash scripts/render-secrets-up.sh`
 
-The template sets `groupPolicy: "open"` and `requireMention: false` so the bot responds to all messages in the group without needing @mentions. This is safe for personal/small-team groups where you control membership.
+The template sets `groupPolicy: "allowlist"` with an empty `groups`/`groupAllowFrom` so a fresh deploy will not respond in any group until one is explicitly added. `scripts/setup-telegram-topics.sh` (or manual edit) appends your group chat ID to `groupAllowFrom`. If you want the bot to respond without @mentions in an allowed group, set `requireMention: false` in that group's entry under `groups`.
 
 7. Update `extensions/notifications/config.json` with topic IDs:
 

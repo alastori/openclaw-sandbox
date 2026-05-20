@@ -123,10 +123,9 @@
       "enabled": true,
       "dmPolicy": "pairing",
       "botToken": "op://${OP_VAULT}/${OP_ITEM}/telegram_bot_token",
-      "groupPolicy": "open",
-      "groups": {
-        "*": { "requireMention": false }
-      },
+      "groupPolicy": "allowlist",
+      "groups": {},
+      "groupAllowFrom": [],
       "streaming": "off"
     }
   },
