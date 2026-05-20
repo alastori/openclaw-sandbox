@@ -143,11 +143,16 @@ rm -f "$config_tmp.bak"
 : "${TELEGRAM_ALLOW_FROM:=}"
 # Normalize the same way setup-telegram-topics.sh does so a value that
 # is only whitespace/separators (e.g. ",") doesn't slip past the check
-# and produce an empty channels.telegram.groupAllowFrom.
+# and produce an empty channels.telegram.groupAllowFrom. Also drop any
+# "*" wildcard, which OpenClaw treats as allow-all-senders and would
+# defeat the allowlist.
+if [[ "${TELEGRAM_ALLOW_FROM}" == *"*"* ]]; then
+  echo "warning: dropping '*' from TELEGRAM_ALLOW_FROM; wildcard senders are not allowed (use explicit Telegram user IDs)." >&2
+fi
 TELEGRAM_ALLOW_FROM="$(printf '%s' "$TELEGRAM_ALLOW_FROM" | tr -d '[:space:]' \
   | awk -F, '{
       out=""; sep="";
-      for (i=1; i<=NF; i++) if ($i != "") { out = out sep $i; sep = "," }
+      for (i=1; i<=NF; i++) if ($i != "" && $i != "*") { out = out sep $i; sep = "," }
       print out
     }')"
 if [[ -n "${TELEGRAM_GROUP_ID}" && -z "${TELEGRAM_ALLOW_FROM}" ]]; then

@@ -66,17 +66,23 @@ if [[ -z "$ALLOW_FROM" && -n "${TELEGRAM_ALLOW_FROM:-}" ]]; then
   ALLOW_FROM="$TELEGRAM_ALLOW_FROM"
 fi
 
-# Normalize ALLOW_FROM to a space-free comma-separated list, then collapse
-# stray separators (",,", trailing/leading commas). Persisting "123, 456"
-# verbatim to .env.instance.local would break the next `source` (the
-# shell would treat 456 as a command under set -e); and a value that is
-# only separators (e.g. ",") must not survive the non-empty check below
-# because the JSON patcher would later parse it to zero senders and
-# silently land in the unsafe allowlist + empty groupAllowFrom state.
+# Normalize ALLOW_FROM to a space-free comma-separated list and reject
+# tokens that would defeat the allowlist. We:
+#   - strip whitespace (a literal "123, 456" in the file would otherwise
+#     break the next `source` under set -e),
+#   - drop empty tokens / stray separators (",", ",,"), so a value that
+#     parses to zero senders cannot survive the non-empty check below
+#     and silently land in the unsafe allowlist + empty groupAllowFrom
+#     state, and
+#   - drop any "*" entry, since OpenClaw treats "*" in groupAllowFrom
+#     as an allow-all-senders wildcard.
+if [[ "$ALLOW_FROM" == *"*"* ]]; then
+  echo "warning: dropping '*' from --allow-from / TELEGRAM_ALLOW_FROM; wildcard senders are not allowed (use explicit Telegram user IDs)." >&2
+fi
 ALLOW_FROM="$(printf '%s' "$ALLOW_FROM" | tr -d '[:space:]' \
   | awk -F, '{
       out=""; sep="";
-      for (i=1; i<=NF; i++) if ($i != "") { out = out sep $i; sep = "," }
+      for (i=1; i<=NF; i++) if ($i != "" && $i != "*") { out = out sep $i; sep = "," }
       print out
     }')"
 
@@ -252,9 +258,16 @@ echo ""
 echo "Updating config/openclaw.json telegram.groups..."
 
 OC_CONFIG="$ROOT_DIR/config/openclaw.json"
+MERGED_ALLOW_FROM="$ALLOW_FROM"
 if [[ -f "$OC_CONFIG" ]]; then
-  python3 -c "
-import json
+  # The Python block prints a marker line `MERGED_ALLOW_FROM=<csv>` that
+  # we capture below; the line is the union of any pre-existing senders
+  # in config/openclaw.json with the operator-supplied IDs. We persist
+  # that merged list (not just the raw CLI/env value) to
+  # .env.instance.local so re-renders don't drop previously approved
+  # senders.
+  MERGED_OUTPUT="$(python3 -c "
+import json, sys
 with open('$OC_CONFIG') as f:
     cfg = json.load(f)
 tg = cfg.setdefault('channels', {}).setdefault('telegram', {})
@@ -276,28 +289,34 @@ chat_id = '$CHAT_ID'
 if chat_id not in groups:
     groups[chat_id] = {'requireMention': False}
     changed = True
-    print(f'  Added {chat_id} to channels.telegram.groups')
+    print(f'  Added {chat_id} to channels.telegram.groups', file=sys.stderr)
 else:
-    print(f'  {chat_id} already in channels.telegram.groups')
+    print(f'  {chat_id} already in channels.telegram.groups', file=sys.stderr)
 
 # Sender allowlist: merge any pre-existing entries with the operator-supplied
-# IDs from --allow-from / TELEGRAM_ALLOW_FROM so we never leave the bot in the
-# unsafe 'allowlist + empty groupAllowFrom' state (which exposes slash/native
-# commands per upstream Telegram command auth).
-existing = tg.get('groupAllowFrom') or []
-new_ids = [s.strip() for s in '$ALLOW_FROM'.split(',') if s.strip()]
-merged = list(dict.fromkeys(list(existing) + new_ids))
-if merged != list(existing):
+# IDs and drop any '*' wildcard so we never leave the bot in the unsafe
+# 'allowlist + (empty or wildcard) groupAllowFrom' state, which exposes
+# slash/native commands per upstream Telegram command auth.
+existing = [s for s in (tg.get('groupAllowFrom') or []) if s and s != '*']
+new_ids = [s.strip() for s in '$ALLOW_FROM'.split(',') if s.strip() and s.strip() != '*']
+merged = list(dict.fromkeys(existing + new_ids))
+if (tg.get('groupAllowFrom') or []) != merged:
     tg['groupAllowFrom'] = merged
     changed = True
-    print(f'  Set channels.telegram.groupAllowFrom = {merged}')
+    print(f'  Set channels.telegram.groupAllowFrom = {merged}', file=sys.stderr)
 
 if changed:
     with open('$OC_CONFIG', 'w') as f:
         json.dump(cfg, f, indent=2)
         f.write('\n')
-    print('  channels.telegram.groupPolicy=allowlist, wildcard removed if present')
-"
+    print('  channels.telegram.groupPolicy=allowlist, wildcard removed if present', file=sys.stderr)
+
+# Marker on stdout for the bash wrapper to capture.
+print('MERGED_ALLOW_FROM=' + ','.join(merged))
+")"
+  # Informational lines from Python went to stderr (already visible).
+  # Only the MERGED_ALLOW_FROM=<csv> marker is on stdout.
+  MERGED_ALLOW_FROM="$(printf '%s\n' "$MERGED_OUTPUT" | sed -n 's/^MERGED_ALLOW_FROM=//p' | tail -n1)"
 fi
 
 # --- Persist TELEGRAM_GROUP_ID in .env.instance.local so re-renders preserve it ---
@@ -316,9 +335,9 @@ persist_kv() {
 
 if [[ -f "$INSTANCE_ENV" ]]; then
   persist_kv "TELEGRAM_GROUP_ID" "$CHAT_ID"
-  persist_kv "TELEGRAM_ALLOW_FROM" "$ALLOW_FROM"
+  persist_kv "TELEGRAM_ALLOW_FROM" "$MERGED_ALLOW_FROM"
 else
-  echo "  Note: .env.instance.local not found; set TELEGRAM_GROUP_ID=$CHAT_ID and TELEGRAM_ALLOW_FROM=$ALLOW_FROM there so re-renders preserve the group."
+  echo "  Note: .env.instance.local not found; set TELEGRAM_GROUP_ID=$CHAT_ID and TELEGRAM_ALLOW_FROM=$MERGED_ALLOW_FROM there so re-renders preserve the group."
 fi
 
 echo ""
