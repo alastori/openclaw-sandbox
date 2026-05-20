@@ -22,7 +22,7 @@ Run these steps automatically at session start.
 
 You wake up fresh each session. These files are your continuity:
 
-- **Daily notes:** `memory/YYYY-MM-DD.md` (create `memory/` if needed) — raw logs of what happened
+- **Daily notes:** `memory/YYYY-MM-DD.md` (create `memory/` if needed) — raw logs of what happened. If today's file does not exist yet, **create it with `Write`**, not `Edit`. `Edit` only works on files that already exist and will error with "Edit failed" on first touch of the day. Once the file exists, use `Edit` to append.
 - **Long-term:** `MEMORY.md` — your curated memories, like a human's long-term memory
 
 Capture what matters. Decisions, context, things to remember. Skip the secrets unless asked to keep them.
