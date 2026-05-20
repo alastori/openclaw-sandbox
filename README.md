@@ -404,12 +404,12 @@ TELEGRAM_GROUP_ID=<GROUP_CHAT_ID>
 
 Then re-render: `bash scripts/render-secrets-up.sh`
 
-The template sets `groupPolicy: "disabled"` with empty `groups` and `groupAllowFrom`. Per upstream Telegram docs, `"disabled"` means the bot rejects all group messages, so a fresh deploy is DM-only. To enable group access:
+The template sets `groupPolicy: "disabled"` with empty `groups` and `groupAllowFrom`. Per upstream Telegram docs, `"disabled"` means the bot rejects all group messages, so a fresh deploy is DM-only. To enable group access durably (so it survives a re-render):
 
-1. Run `scripts/setup-telegram-topics.sh`. It adds your chat ID to `channels.telegram.groups` and switches `groupPolicy` to `"allowlist"`.
-2. Add your Telegram user ID (and any other allowed senders) to `channels.telegram.groupAllowFrom`. With `groupPolicy: "allowlist"`, OpenClaw drops every group message until at least one sender is approved there.
+1. Set `TELEGRAM_GROUP_ID=<chat-id>` and `TELEGRAM_ALLOW_FROM=<comma-separated user IDs>` in `.env.instance.local`. `scripts/render-secrets-up.sh` reads both: when `TELEGRAM_GROUP_ID` is non-empty it flips `groupPolicy` to `"allowlist"`, adds the chat ID to `channels.telegram.groups`, and writes `TELEGRAM_ALLOW_FROM` into `channels.telegram.groupAllowFrom`.
+2. Run `scripts/setup-telegram-topics.sh` to create the Ops/Alerts topics. It also patches the live config and persists `TELEGRAM_GROUP_ID` back to `.env.instance.local` for you. `TELEGRAM_ALLOW_FROM` is operator-managed.
 
-Both lists matter: `groups` controls which chats the bot will respond in, and `groupAllowFrom` controls which user IDs may message it within those chats.
+Both lists matter: `groups` controls which chats the bot responds in, and `groupAllowFrom` controls which user IDs may message it within those chats. With `groupPolicy: "allowlist"` and an empty `groupAllowFrom`, OpenClaw drops every group message — set `TELEGRAM_ALLOW_FROM` before enabling group access.
 
 7. Update `extensions/notifications/config.json` with topic IDs:
 

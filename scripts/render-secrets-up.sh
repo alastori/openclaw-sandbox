@@ -116,25 +116,37 @@ sed -i.bak "s|\${TELEGRAM_BOT_NAME}|${TELEGRAM_BOT_NAME}|g" "$config_tmp"
 sed -i.bak "s|\${OPENCLAW_PORT}|${OPENCLAW_PORT}|g" "$config_tmp"
 rm -f "$config_tmp.bak"
 
-# If a Telegram group ID is configured, persist it into
-# channels.telegram.groups so it survives re-renders. The template ships
-# with an empty groups object; setup-telegram-topics.sh writes both the
-# rendered config and .env.instance.local, so subsequent renders pick it
-# up here.
+# If a Telegram group ID is configured, persist the full allowlist state
+# into the rendered config so it survives re-renders. The template ships
+# with groupPolicy: "disabled" (closed-by-default DM-only); when the
+# user opts into group access via setup-telegram-topics.sh, that script
+# writes TELEGRAM_GROUP_ID (and the operator writes TELEGRAM_ALLOW_FROM)
+# to .env.instance.local, and the render flow restores the full state:
+#   - groupPolicy -> "allowlist"
+#   - channels.telegram.groups[<chat-id>] = { requireMention: false }
+#   - channels.telegram.groupAllowFrom = [<user-ids>]
+: "${TELEGRAM_ALLOW_FROM:=}"
 if [[ -n "${TELEGRAM_GROUP_ID}" ]]; then
   python3 -c "
-import json, sys
+import json
 path = '$config_tmp'
 with open(path) as f:
     cfg = json.load(f)
 tg = cfg.setdefault('channels', {}).setdefault('telegram', {})
+tg['groupPolicy'] = 'allowlist'
+
 groups = tg.setdefault('groups', {})
 chat_id = '${TELEGRAM_GROUP_ID}'
 if chat_id not in groups:
     groups[chat_id] = {'requireMention': False}
-    with open(path, 'w') as f:
-        json.dump(cfg, f, indent=2)
-        f.write('\n')
+
+allow_raw = '${TELEGRAM_ALLOW_FROM}'
+allow = [s.strip() for s in allow_raw.split(',') if s.strip()]
+tg['groupAllowFrom'] = allow
+
+with open(path, 'w') as f:
+    json.dump(cfg, f, indent=2)
+    f.write('\n')
 "
 fi
 
