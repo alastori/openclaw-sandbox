@@ -1,8 +1,6 @@
 FROM node:22-bookworm-slim
 
-# Pinned: 2026.4.6+ installs plugin node_modules at CLI/gateway load time,
-# which fails on our read_only rootfs. See ROADMAP.md "Watching upstream".
-ARG OPENCLAW_VERSION=2026.4.5
+ARG OPENCLAW_VERSION=2026.6.8
 ARG INSTALL_GEMINI_CLI=true
 
 # Install build tools for native modules (e.g. @discordjs/opus)

@@ -1,5 +1,5 @@
 {
-  "$comment": "Model routing reference. Prefer subscription models over API-billed. Fallback chain: Gemini (sub) -> Codex (sub) -> OpenAI API -> Sonnet (API) -> Opus (API) -> Qwen 3.6 local -> Nemotron 3 Super local. GPT-5.5 (2026-04-23) and Opus 4.7 (2026-04-16) exist upstream but OpenClaw 2026.4.5's model catalog does not know them yet; pinning either returns 'Unknown model' and falls through. Revisit when OpenClaw ships a catalog refresh.",
+  "$comment": "Model routing reference. Prefer subscription models over API-billed. Fallback chain: Gemini (sub) -> Codex (sub) -> OpenAI API -> Sonnet (API) -> Opus (API) -> Qwen 3.6 local -> Nemotron 3 Super local. OpenClaw 2026.6.8 recognises Anthropic Opus 4.7 and GitHub Copilot GPT-5.5, but GPT-5.5 is not available as openai-codex/gpt-5.5. Keep the current tested chain until an explicit model-policy adoption pass succeeds.",
   "fallback_chain": [
     { "model": "google/gemini-2.5-flash",               "billing": "subscription", "role": "primary" },
     { "model": "openai-codex/gpt-5.4",                  "billing": "subscription", "role": "first fallback" },
@@ -16,7 +16,7 @@
     },
     "coding": {
       "model": "openai-codex/gpt-5.4",
-      "rationale": "Strong coding on subscription. Use /model gpt-5.4 in Coding topic. (GPT-5.5 released 2026-04-23 but not yet in OpenClaw 2026.4.5 catalog.)"
+      "rationale": "Strong coding on subscription. Use /model gpt-5.4 in Coding topic. GPT-5.5 is catalogued for GitHub Copilot in OpenClaw 2026.6.8, but not for openai-codex."
     },
     "deep_research": {
       "model": "openai-codex/gpt-5.4",
@@ -32,7 +32,7 @@
     },
     "precision": {
       "model": "anthropic/claude-opus-4-6",
-      "rationale": "Best-in-class reasoning (91% GPQA Diamond). API-billed. Use only when Codex falls short. (Opus 4.7 released 2026-04-16 but not yet in OpenClaw 2026.4.5 catalog.)"
+      "rationale": "Best-in-class reasoning fallback. API-billed. Use only when Codex falls short. Opus 4.7 is catalogued in OpenClaw 2026.6.8 but has not been adopted into the tested fallback chain yet."
     },
     "local_fallback": {
       "model": "ollama/qwen3.6:35b-a3b-q8_0",

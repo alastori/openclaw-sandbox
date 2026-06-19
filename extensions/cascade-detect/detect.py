@@ -33,7 +33,7 @@ from pathlib import Path
 OPENCLAW_HOME = Path(os.environ.get("OPENCLAW_HOME", "/home/node/.openclaw"))
 EXTENSIONS_DIR = Path(os.environ.get("OPENCLAW_EXTENSIONS_DIR", "/home/node/extensions"))
 BUFFER_SCRIPT = EXTENSIONS_DIR / "notifications" / "buffer.py"
-LOG_DIR = Path("/tmp/openclaw")
+LOG_DIRS = [OPENCLAW_HOME / "logs", Path("/tmp/openclaw")]
 STATE_DIR = OPENCLAW_HOME / "cascade-detect"
 STATE_FILE = STATE_DIR / "state.json"
 
@@ -66,12 +66,18 @@ def save_state(state: dict) -> None:
 
 
 def candidate_log_files() -> list[Path]:
-    """Today's and yesterday's log files (UTC), in ascending order."""
-    if not LOG_DIR.exists():
-        return []
-    files = sorted(LOG_DIR.glob("openclaw-*.log"))
-    # Keep only the last two days to bound work; cron runs every 30 min so this is plenty.
-    return files[-2:]
+    """Current and recent gateway logs, in ascending mtime order."""
+    files: list[Path] = []
+    for log_dir in LOG_DIRS:
+        if not log_dir.exists():
+            continue
+        current = log_dir / "openclaw.log"
+        if current.exists():
+            files.append(current)
+        files.extend(sorted(log_dir.glob("openclaw-*.log"))[-2:])
+
+    unique = {str(path): path for path in files}
+    return sorted(unique.values(), key=lambda path: path.stat().st_mtime)
 
 
 def parse_iso(value: str) -> datetime | None:

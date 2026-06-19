@@ -172,13 +172,13 @@ The `Dockerfile` accepts build arguments to customize the image:
 
 | Arg | Default | Description |
 |-----|---------|-------------|
-| `OPENCLAW_VERSION` | `latest` | Pin to a specific OpenClaw release |
+| `OPENCLAW_VERSION` | `2026.6.8` | Pin to a specific OpenClaw release |
 | `INSTALL_GEMINI_CLI` | `true` | Set to `false` to skip Gemini CLI installation |
 
 Example:
 
 ```bash
-OPENCLAW_VERSION=2026.3.23-2 docker compose build
+OPENCLAW_VERSION=2026.6.8 docker compose build
 ```
 
 **Model auth strategy:** Gemini uses the bundled `google` plugin with `google-gemini-cli` OAuth (free tier); OpenAI prefers Codex OAuth (subscription) with API key as fallback; Anthropic uses API key only (subscription OAuth is banned for third-party tools since Jan 2026). After rebuilding, run the interactive OAuth flows:

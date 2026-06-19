@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        OPENCLAW_VERSION: ${OPENCLAW_VERSION:-latest}
+        OPENCLAW_VERSION: ${OPENCLAW_VERSION:-2026.6.8}
         INSTALL_GEMINI_CLI: ${INSTALL_GEMINI_CLI:-true}
     restart: unless-stopped
     ports:
@@ -18,12 +18,6 @@ services:
       # Keep this explicit mount for tools or sessions that opt into it.
       - ./workspace:/home/node/workspace
       - ./extensions:/home/node/extensions:ro
-      # OpenClaw 2026.4.5 ignores logging.file and writes to
-      # /tmp/openclaw/openclaw-<date>.log instead. /tmp is a tmpfs in this
-      # compose, so without this mount gateway logs evaporate on every
-      # restart and cascade-detect loses its history window. Drop this
-      # mount when the upstream bug (see ROADMAP) is fixed.
-      - ./config/gateway-logs:/tmp/openclaw
     # Secrets live in .runtime/openclaw.env (rendered by scripts/render-secrets-up.sh).
     # Loaded here instead of via `environment:` because compose's `environment:` takes
     # precedence over `env_file:` and would silently override loaded secrets with

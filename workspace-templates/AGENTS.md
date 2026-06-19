@@ -2,6 +2,11 @@
 
 This folder is home. Treat it that way.
 
+Active workspace path inside the container is `/home/node/.openclaw/workspace`.
+On the host, that is `config/workspace/`. `/home/node/workspace` may also be
+mounted for explicit use, but it is a legacy/convenience mount and not the
+default workspace for cron or normal sessions.
+
 ## First Run
 
 If `BOOTSTRAP.md` exists, that's your birth certificate. Follow it, figure out who you are, then archive or remove it according to local file policy. You won't need it again.

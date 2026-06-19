@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Run OpenClaw security audit and buffer only actionable findings.
 
-OpenClaw 2026.4.5 reports `models.small_params` as critical for local
-Ollama fallback models because it sees global web tools and sandbox=off.
+OpenClaw reports `models.small_params` as critical for local Ollama
+fallback models because it sees global web tools and sandbox=off.
 This project mitigates that risk with a provider-scoped deny rule:
 
   tools.byProvider.ollama.deny = ["web_search", "web_fetch", "browser_navigate"]

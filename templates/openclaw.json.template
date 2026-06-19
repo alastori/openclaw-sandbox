@@ -126,7 +126,9 @@
       "groupPolicy": "disabled",
       "groups": {},
       "groupAllowFrom": [],
-      "streaming": "off"
+      "streaming": {
+        "mode": "off"
+      }
     }
   },
   "discovery": {
