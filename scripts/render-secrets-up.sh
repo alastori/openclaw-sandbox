@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# render-secrets-up.sh — Render secrets from 1Password, apply config overlays,
+# render-secrets-up.sh - Render secrets from 1Password, apply config overlays,
 # and start the OpenClaw container.
 #
 # Usage:
@@ -20,14 +20,14 @@
 #     5. Substitutes non-secret env vars (TELEGRAM_BOT_NAME, OPENCLAW_PORT)
 #     6. Applies model policy (scripts/apply-model-policy.py)
 #     7. Deep-merges enforced defaults (scripts/apply-defaults.py)
-#     8. Initializes workspace templates on first run (scripts/init-workspace.sh)
+#     8. Initializes active workspace templates on first run (scripts/init-workspace.sh)
 #     9. Backs up existing config/openclaw.json
 #    10. Starts the container with docker compose
 #
 # What it changes:
 #     - Writes .runtime/openclaw.env (API keys, mode 600)
 #     - Writes config/openclaw.json (rendered config, mode 600)
-#     - Creates config/ and workspace/ directories (mode 700)
+#     - Creates config/, config/workspace/, and workspace/ directories (mode 700)
 
 set -euo pipefail
 
@@ -67,9 +67,9 @@ if [[ ! -f "$MODEL_POLICY_FILE" ]]; then
   exit 1
 fi
 
-mkdir -p .runtime config workspace
+mkdir -p .runtime config config/workspace workspace
 chmod 700 .runtime
-chmod 700 config workspace
+chmod 700 config config/workspace workspace
 
 # --- Secret resolution ---
 # New path: pluggable backend via resolve-secrets.py (if mapping file exists)
@@ -118,8 +118,8 @@ config_tmp="$config_tmp_dir/openclaw.json"
 if command -v op >/dev/null 2>&1 && [[ -n "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]]; then
   op inject -i templates/openclaw.json.template -o "$config_tmp"
 else
-  # No op CLI — do plain env var substitution only
-  cp templates/openclaw.json.template "$config_tmp"
+  # No op CLI. Do plain env var substitution only.
+  rsync -a templates/openclaw.json.template "$config_tmp"
 fi
 chmod 600 "$config_tmp"
 
@@ -200,7 +200,7 @@ bash scripts/init-workspace.sh
 
 if [[ -f config/openclaw.json ]]; then
   backup_path="config/openclaw.json.bak.$(date +%Y%m%d-%H%M%S)"
-  cp config/openclaw.json "$backup_path"
+  rsync -a config/openclaw.json "$backup_path"
   chmod 600 "$backup_path"
   echo "Backed up existing config/openclaw.json to $backup_path"
 fi

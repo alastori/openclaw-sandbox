@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Copy workspace templates into ./workspace/ if not already populated.
-# Safe to run multiple times — never overwrites existing files.
-# Matches the docker-compose mount: ./workspace -> /home/node/workspace.
+# Copy workspace templates into the active OpenClaw workspace if missing.
+# Safe to run multiple times. Never overwrites existing files.
+# Matches the default OpenClaw home workspace:
+#   ./config/workspace -> /home/node/.openclaw/workspace
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SRC="$ROOT_DIR/workspace-templates"
-DST="$ROOT_DIR/workspace"
+DST="$ROOT_DIR/config/workspace"
+LEGACY_DST="$ROOT_DIR/workspace"
 
 if [[ ! -d "$SRC" ]]; then
   echo "error: workspace-templates/ not found" >&2
@@ -14,19 +16,43 @@ if [[ ! -d "$SRC" ]]; then
 fi
 
 mkdir -p "$DST"
+chmod 700 "$ROOT_DIR/config" "$DST"
 
 copied=0
-for f in "$SRC"/*; do
-  name="$(basename "$f")"
-  if [[ ! -f "$DST/$name" ]]; then
-    cp "$f" "$DST/$name"
+legacy_copied=0
+
+copy_if_missing() {
+  local src="$1"
+  local dst="$2"
+  local name
+  name="$(basename "$src")"
+  if [[ ! -f "$dst/$name" ]]; then
+    rsync -a "$src" "$dst/$name"
     echo "  Copied $name"
+    return 0
+  fi
+  return 1
+}
+
+# Older versions seeded ./workspace even though the gateway's active default
+# workspace is under ./config/workspace. Preserve any top-level legacy notes by
+# copying them into the active workspace only when the active file is missing.
+if [[ -d "$LEGACY_DST" ]]; then
+  for f in "$LEGACY_DST"/*; do
+    if [[ -f "$f" ]] && copy_if_missing "$f" "$DST"; then
+      legacy_copied=$((legacy_copied + 1))
+    fi
+  done
+fi
+
+for f in "$SRC"/*; do
+  if [[ -f "$f" ]] && copy_if_missing "$f" "$DST"; then
     copied=$((copied + 1))
   fi
 done
 
-if [[ $copied -eq 0 ]]; then
-  echo "Workspace already initialized (no files copied)."
+if [[ $copied -eq 0 && $legacy_copied -eq 0 ]]; then
+  echo "Active workspace already initialized at config/workspace (no files copied)."
 else
-  echo "Initialized workspace with $copied template(s)."
+  echo "Initialized active workspace at config/workspace with $legacy_copied legacy file(s) and $copied template(s)."
 fi

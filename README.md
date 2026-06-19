@@ -76,8 +76,8 @@ macOS Host
 └── Docker Container (sandboxed)
     └── OpenClaw Gateway
         ├── Reaches Ollama via host.docker.internal
-        ├── Config:    ./config/  -> /home/node/.openclaw
-        └── Workspace: ./workspace/ -> /home/node/workspace
+        ├── Config:    ./config/           -> /home/node/.openclaw
+        └── Workspace: ./config/workspace/ -> /home/node/.openclaw/workspace
 ```
 
 The LLM runs natively on the host for full Metal GPU acceleration. The Docker container runs the OpenClaw gateway with Node.js 22, Python 3, cron, and Gemini CLI available for agent tasks, capped at 2 GB RAM and 2 CPU cores.
@@ -147,7 +147,7 @@ The model policy is defined in `defaults/models.policy.json` -- subscription mod
 
 ### Workspace Templates
 
-The `workspace-templates/` directory contains seed files (`SOUL.md`, `USER.md`, `IDENTITY.md`, etc.) that are copied to `workspace/` on the first deploy. Users can customize them before running setup. They define the agent's personality, memory structure, and behavioral guidelines.
+The `workspace-templates/` directory contains seed files (`SOUL.md`, `USER.md`, `IDENTITY.md`, etc.) that are copied to `config/workspace/` on the first deploy. Users can customize them before running setup. They define the agent's personality, memory structure, and behavioral guidelines.
 
 ### Extensions
 
@@ -157,6 +157,7 @@ Extensions live in `extensions/`. Each has its own README with configuration and
 - **news-brief** -- RSS feeds summarized by Ollama, delivered via Telegram.
 - **backup** -- Git auto-commit + push tracked changes.
 - **doc-watch** -- Monitors external documentation URLs for changes.
+- **security-audit** -- Runs OpenClaw security audit and suppresses known acceptable findings only when their configured mitigations are present.
 
 To set up an extension:
 
@@ -243,7 +244,7 @@ Files involved:
 - `scripts/apply-defaults.py` -- deep-merges defaults into the rendered config
 
 **Deploy pipeline:**
-- `scripts/init-workspace.sh` -- copies `workspace-templates/` into `workspace/` on first run
+- `scripts/init-workspace.sh` -- copies `workspace-templates/` into `config/workspace/` on first run
 - `templates/openclaw.json.template` -- tracked config template with 1Password secret references
 - `.runtime/openclaw.env` -- generated runtime env file, untracked
 - `scripts/resolve-secrets.py` -- pluggable secret resolver, used by `render-secrets-up.sh` when `config/secrets-mapping.yaml` exists
@@ -257,7 +258,7 @@ On macOS/Colima, don't deploy from `/tmp` or `/private/tmp`: Docker bind-mounts 
 
 Run one checkout per user or persona. Each checkout should have:
 
-- its own `config/` and `workspace/`
+- its own `config/` and optional `workspace/`
 - a unique `COMPOSE_PROJECT_NAME`
 - a unique `OPENCLAW_PORT`
 
@@ -274,7 +275,7 @@ COMPOSE_PROJECT_NAME=openclaw-wife
 OPENCLAW_PORT=18790
 ```
 
-- This repo does not support multiple independent users from a single checkout because `config/` and `workspace/` are shared within one repo directory.
+- This repo does not support multiple independent users from a single checkout because `config/` is shared within one repo directory.
 - `./setup.sh` also respects `OPENCLAW_PORT` for checkouts that start from `templates/openclaw.json.minimal`, not just the secrets-rendered path.
 - For routine per-instance operations, prefer `./oc ...` over raw `docker compose ...`; the wrapper loads `.env.instance.local` automatically.
 - If two parallel instances share the same Telegram bot token, only one should poll Telegram at a time. For smoke tests or temporary side-by-side instances, disable Telegram in the secondary instance or give it a different bot token.
@@ -396,7 +397,7 @@ Look for `message.chat.id` (group ID, negative number) and `message.message_thre
    - In Telegram, message `@BotFather` → `/setprivacy` → select your bot → `Disable`
    - **Remove and re-add the bot** to the group (Telegram only applies the change on re-join)
 
-6. Enable group access in `.env.instance.local` (both variables are required together — `render-secrets-up.sh` aborts if `TELEGRAM_GROUP_ID` is set without `TELEGRAM_ALLOW_FROM`):
+6. Enable group access in `.env.instance.local` (both variables are required together. `render-secrets-up.sh` aborts if `TELEGRAM_GROUP_ID` is set without `TELEGRAM_ALLOW_FROM`):
 
 ```bash
 TELEGRAM_GROUP_ID=<GROUP_CHAT_ID>
@@ -531,11 +532,11 @@ The Docker container enforces:
 - **Non-root user** (`node`, uid 1000)
 - **`no-new-privileges`** security option
 - **Resource limits** -- 2 GB memory, 2 CPU cores
-- **Volume isolation** -- `./workspace/` (agent working directory) and `./config/` (OpenClaw home) are mounted; `/tmp` is a size-limited tmpfs
+- **Volume isolation** -- `./config/` contains OpenClaw home plus the active `config/workspace/` agent workspace; `./workspace/` remains mounted at `/home/node/workspace` for explicit use; `/tmp` is a size-limited tmpfs
 - **No host filesystem access** -- no home directory, documents, or credentials
 - **Localhost-only port binding** -- gateway accessible only from the host
 - **Gateway auth rate limiting** -- `gateway.auth.rateLimit` defaults to `10` attempts per `60s`, with a `5m` lockout
-- **Private state directories** -- `setup.sh` and `scripts/render-secrets-up.sh` force `config/` and `workspace/` to mode `700`
+- **Private state directories** -- `setup.sh` and `scripts/render-secrets-up.sh` force `config/`, `config/workspace/`, and `workspace/` to mode `700`
 - **Elevated tools disabled by default** -- shell/write escalation is off unless you explicitly opt back in with a narrow allowlist
 - **ClawSec skill suite** -- baked into the Docker image; provides drift detection for SOUL.md/IDENTITY.md, skill integrity checks (SHA256), and CVE advisory feed
 - **Prompt injection defense** -- behavioral rules in `workspace-templates/SOUL.md` instruct the agent to treat all external content as untrusted, flag injection patterns, and never execute instructions from fetched content
@@ -571,7 +572,7 @@ Routine checks to keep the gateway, crons, and model chain healthy.
 
 ```bash
 bash ./scripts/check-models.sh               # probe the pinned model chain; see Periodic Model Audit
-./oc security audit --deep                   # security review; known-acceptable findings live in workspace/learnings.md
+./oc security audit --deep                   # security review; known-acceptable findings live in config/workspace/learnings.md
 cat config/logs/digest.jsonl | tail -20      # confirm recent Telegram digest deliveries
 ```
 

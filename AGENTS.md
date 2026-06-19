@@ -27,7 +27,7 @@ defaults/                           Enforced config overlays (merged at deploy t
   secrets-backend.json              Pluggable credential backend definitions (1Password, Vault, AWS SM, Keychain, env)
   prompt-guidelines.md              Model-neutral prompt style guide (Claude, GPT, Gemini)
 
-workspace-templates/                Tracked seed files copied to workspace/ on first deploy
+workspace-templates/                Tracked seed files copied to config/workspace/ on first deploy
   SOUL.md, USER.md, IDENTITY.md, AGENTS.md, BOOTSTRAP.md, HEARTBEAT.md, TOOLS.md, learnings.md
 
 extensions/                         Optional add-ons, mounted read-only at /home/node/extensions
@@ -44,21 +44,23 @@ extensions/                         Optional add-ons, mounted read-only at /home
   doc-watch/
     doc-watch.py                    Monitor external documentation URLs for changes
     README.md                       Extension setup and configuration
+  security-audit/
+    check.py                        Deterministic OpenClaw security audit notification filter
 
 scripts/
   render-secrets-up.sh              Pipeline: op inject -> model policy -> defaults -> workspace init -> deploy
-  setup-crons.sh                    Create default cron jobs (idempotent, skips existing)
+  setup-crons.sh                    Create or update default cron jobs by name
   setup-telegram-topics.sh          Create Ops + Alerts topics in a Telegram group, update configs
   apply-defaults.py                 Deep-merge defaults/*.json into rendered config
   apply-model-policy.py             Apply pinned model policy
-  init-workspace.sh                 Copy workspace-templates/ into workspace/ (first run only)
+  init-workspace.sh                 Copy workspace-templates/ into config/workspace/ (first run only)
   bootstrap-secrets-local.sh        Create 1Password service account token
   check-models.sh                   Probe configured models and audit policy
   load-local-env.sh                 Source .env.instance.local and .env.secrets.local into the shell
   resolve-secrets.py                Pluggable secret resolver (1Password, Vault, AWS SM, Keychain, env)
 
-config/                             gitignored -- runtime state (sessions, credentials, live config)
-workspace/                          gitignored -- agent working directory
+config/                             gitignored -- runtime state (sessions, credentials, live config, active workspace)
+workspace/                          gitignored -- legacy/convenience mount at /home/node/workspace
 .runtime/                           gitignored -- rendered secrets (.env for docker compose)
 logs/                               gitignored -- extension output logs
 ```
@@ -67,8 +69,9 @@ logs/                               gitignored -- extension output logs
 
 | Host Path | Container Path | Purpose |
 |-----------|---------------|---------|
-| `./config/` | `/home/node/.openclaw` | OpenClaw home (config, credentials, sessions) |
-| `./workspace/` | `/home/node/workspace` | Agent working directory |
+| `./config/` | `/home/node/.openclaw` | OpenClaw home (config, credentials, sessions, active workspace) |
+| `./config/workspace/` | `/home/node/.openclaw/workspace` | Default agent workspace used by cron and sessions |
+| `./workspace/` | `/home/node/workspace` | Legacy/convenience mount, not the default OpenClaw workspace |
 | `./extensions/` | `/home/node/extensions` | Extensions (read-only) |
 
 ### Model Chain & Auth
@@ -92,7 +95,7 @@ logs/                               gitignored -- extension output logs
 - Ollama concurrency is controlled on the host with `OLLAMA_NUM_PARALLEL`; there is no OpenClaw config field like `models.providers.ollama.maxConcurrent`.
 - On macOS/Colima, don't run this repo from `/tmp` or `/private/tmp`; Docker can mount `config/` as effectively empty there. Use a checkout under `/Users/...`.
 - The very first probe right after a rebuild can hit a transient `gateway closed (1006 abnormal closure)` if the gateway restarts once during boot; rerun after `./oc health` is clean before treating it as a real failure.
-- Parallel instances are supported via separate checkouts, each with its own `.env.instance.local`, `config/`, and `workspace/`. Parallel instances must not share the same Telegram bot token with polling enabled unless you deliberately want them competing for the same updates.
+- Parallel instances are supported via separate checkouts, each with its own `.env.instance.local`, `config/`, and optional `workspace/`. Parallel instances must not share the same Telegram bot token with polling enabled unless you deliberately want them competing for the same updates.
 - The default 1Password vault name is `AI-Agents`; override `OP_VAULT` if you use a different vault.
 
 ### Cron Schedule
@@ -108,7 +111,7 @@ Default crons are created by `scripts/setup-crons.sh`. All nightly crons buffer 
 
 - `config/openclaw.json` contains bot tokens and gateway auth tokens -- never commit it.
 - The `config/` directory also contains credentials, session data, and device identity files.
-- `scripts/render-secrets-up.sh` and `setup.sh` both force `config/` and `workspace/` to mode `700`; keep those directories private on the host.
+- `scripts/render-secrets-up.sh` and `setup.sh` both force `config/`, `config/workspace/`, and `workspace/` to mode `700`; keep those directories private on the host.
 - `.gitignore` uses `config/*` to exclude everything under `config/`; all tracked config lives in `templates/` and `defaults/`.
 - Never force-add files from `config/`. No PII or credentials in any tracked file.
 - Elevated tools are disabled by default in the tracked config sources. Re-enable them only if you have a narrow provider-specific allowlist; do not restore `controlui: ["*"]`.

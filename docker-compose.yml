@@ -13,6 +13,9 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./config:/home/node/.openclaw
+      # OpenClaw's default active workspace is /home/node/.openclaw/workspace,
+      # which maps to ./config/workspace through the config mount above.
+      # Keep this explicit mount for tools or sessions that opt into it.
       - ./workspace:/home/node/workspace
       - ./extensions:/home/node/extensions:ro
       # OpenClaw 2026.4.5 ignores logging.file and writes to

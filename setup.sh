@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG_DIR="$SCRIPT_DIR/config"
+ACTIVE_WORKSPACE_DIR="$CONFIG_DIR/workspace"
 WORKSPACE_DIR="$SCRIPT_DIR/workspace"
 
 # shellcheck disable=SC1091
@@ -73,8 +74,9 @@ fi
 # -------------------------------------------------------------------
 echo ""
 echo "[3/7] Creating config and workspace directories..."
-mkdir -p "$CONFIG_DIR" "$WORKSPACE_DIR"
-chmod 700 "$CONFIG_DIR" "$WORKSPACE_DIR"
+mkdir -p "$CONFIG_DIR" "$ACTIVE_WORKSPACE_DIR" "$WORKSPACE_DIR"
+chmod 700 "$CONFIG_DIR" "$ACTIVE_WORKSPACE_DIR" "$WORKSPACE_DIR"
+bash "$SCRIPT_DIR/scripts/init-workspace.sh"
 
 # -------------------------------------------------------------------
 # 4. Build the image
@@ -96,7 +98,7 @@ if [ ! -f "$CONFIG_DIR/openclaw.json" ]; then
         echo "ERROR: templates/openclaw.json.minimal not found. Re-clone the repo."
         exit 1
     fi
-    cp "$MINIMAL_TEMPLATE" "$CONFIG_DIR/openclaw.json"
+    rsync -a "$MINIMAL_TEMPLATE" "$CONFIG_DIR/openclaw.json"
 
     OPENCLAW_PORT="$OPENCLAW_PORT" python3 - "$CONFIG_DIR/openclaw.json" <<'PY'
 import json
@@ -175,7 +177,8 @@ echo "=== Setup Complete ==="
 echo ""
 echo "  Web UI:     http://127.0.0.1:$OPENCLAW_PORT"
 echo "  Dashboard:  ./oc dashboard        # prints URL with auth token"
-echo "  Workspace:  $WORKSPACE_DIR"
+echo "  Workspace:  $ACTIVE_WORKSPACE_DIR"
+echo "  Legacy mount: $WORKSPACE_DIR"
 echo "  Config:     $CONFIG_DIR/openclaw.json"
 echo ""
 echo "  Commands (./oc is a shortcut for openclaw inside the container):"
