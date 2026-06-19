@@ -20,6 +20,20 @@ chmod 700 "$ROOT_DIR/config" "$DST"
 
 copied=0
 legacy_copied=0
+workspace_had_files=false
+if [[ -n "$(find "$DST" -maxdepth 1 -type f -print -quit)" ]]; then
+  workspace_had_files=true
+fi
+LEGACY_MIGRATE_FILES=(
+  AGENTS.md
+  HEARTBEAT.md
+  IDENTITY.md
+  MEMORY.md
+  SOUL.md
+  TOOLS.md
+  USER.md
+  learnings.md
+)
 
 copy_if_missing() {
   local src="$1"
@@ -38,7 +52,8 @@ copy_if_missing() {
 # workspace is under ./config/workspace. Preserve any top-level legacy notes by
 # copying them into the active workspace only when the active file is missing.
 if [[ -d "$LEGACY_DST" ]]; then
-  for f in "$LEGACY_DST"/*; do
+  for name in "${LEGACY_MIGRATE_FILES[@]}"; do
+    f="$LEGACY_DST/$name"
     if [[ -f "$f" ]] && copy_if_missing "$f" "$DST"; then
       legacy_copied=$((legacy_copied + 1))
     fi
@@ -46,6 +61,9 @@ if [[ -d "$LEGACY_DST" ]]; then
 fi
 
 for f in "$SRC"/*; do
+  if [[ "$workspace_had_files" == true && "$(basename "$f")" == "BOOTSTRAP.md" ]]; then
+    continue
+  fi
   if [[ -f "$f" ]] && copy_if_missing "$f" "$DST"; then
     copied=$((copied + 1))
   fi
