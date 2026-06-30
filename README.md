@@ -545,7 +545,7 @@ The Docker container enforces:
 
 ### Nightly Crons
 
-Default crons are created by `bash scripts/setup-crons.sh --telegram-chat-id <ID>`. View the schedule with `./oc cron list`. Manage with `./oc cron run <id>`, `./oc cron disable <id>`.
+Default crons are created by `bash scripts/setup-crons.sh --telegram-chat-id <ID>`. Scriptable checks and deterministic memory synthesis run as OpenClaw command payloads so they do not depend on model availability. View the schedule with `./oc cron list`. Manage with `./oc cron run <id>`, `./oc cron disable <id>`.
 
 ## Maintenance
 

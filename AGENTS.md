@@ -35,6 +35,14 @@ extensions/                         Optional add-ons, mounted read-only at /home
     buffer.py                       Write notification: --tier low|medium|critical --title --body
     digest.py                       Collect buffer, format digest, deliver to Telegram (routes by topic)
     config.example.json             Tier schedules, topic IDs, chat ID, buffer path
+  update-check/
+    check.py                        OpenClaw update status -> notification buffer
+  log-review/
+    check.py                        Deterministic cron/gateway/config audit review
+  doc-drift/
+    check.py                        Active workspace docs vs key runtime state
+  memory-synthesis/
+    synthesize.py                   Existing daily memory notes -> MEMORY.md
   news-brief/                       RSS -> Ollama -> Telegram daily brief
     config.example.json             Template: feeds, chat ID, model
     news-brief.py                   Main script
@@ -46,6 +54,10 @@ extensions/                         Optional add-ons, mounted read-only at /home
     README.md                       Extension setup and configuration
   security-audit/
     check.py                        Deterministic OpenClaw security audit notification filter
+  auth-health/
+    check.py                        Probe pinned model-chain auth without spending LLM tokens
+  cascade-detect/
+    detect.py                       Detect failover cascades in gateway logs and buffer alerts
 
 scripts/
   render-secrets-up.sh              Pipeline: op inject -> model policy -> defaults -> workspace init -> deploy
@@ -100,7 +112,7 @@ logs/                               gitignored -- extension output logs
 
 ### Cron Schedule
 
-Default crons are created by `scripts/setup-crons.sh`. All nightly crons buffer to the notification system; the digest cron delivers one combined message. See that file for the full schedule.
+Default crons are created by `scripts/setup-crons.sh`. Scriptable checks use OpenClaw command payloads and buffer to the notification system; the digest cron delivers one combined message. See that file for the full schedule.
 
 ### Telegram
 
