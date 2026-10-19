@@ -95,6 +95,8 @@ logs/                               gitignored -- extension output logs
 
 ### Container & Networking
 
+Before installing, reviving, disabling, or retiring this deployment, read [Runtime lifecycle](README.md#runtime-lifecycle). That procedure owns the shared-runtime boundary, optional host watchdog, restore points, verification, and cleanup gates.
+
 - Ollama runs natively on the host (port 11434), not inside Docker.
 - Container reaches Ollama via `host.docker.internal` (requires `extra_hosts: host-gateway` for Colima).
 - Container is limited to 2 GB memory and 2 CPU cores; the model runs on the host.

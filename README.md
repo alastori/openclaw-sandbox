@@ -29,6 +29,7 @@ Note: `CLAUDE.md` in the project root is a symlink to `AGENTS.md`.
 - [Recommended Models](#recommended-models)
 - [Security](#security)
 - [Maintenance](#maintenance)
+- [Runtime lifecycle](#runtime-lifecycle)
 - [Troubleshooting](#troubleshooting)
 
 **Two setup paths:**
@@ -64,6 +65,8 @@ Or go directly to `http://127.0.0.1:$OPENCLAW_PORT/` and paste your gateway toke
 - [Docker](https://docs.docker.com/desktop/mac/install/) or [Colima](https://github.com/abiosoft/colima)
 - [Ollama](https://ollama.com) (`brew install ollama`)
 - 32 GB+ unified memory (64 GB+ recommended for larger models)
+
+The Docker CLI also needs a running Docker engine and the Compose plugin. For Colima installation, optional host watchdog setup, revival, and reversible cleanup, read [Runtime lifecycle](#runtime-lifecycle). `setup.sh` checks the engine and starts the gateway; it does not install or register the host watchdog. Before reviving a disabled checkout, follow that lifecycle procedure rather than running setup immediately.
 
 ## Architecture
 
@@ -585,6 +588,153 @@ cat config/logs/digest.jsonl | tail -20      # confirm recent Telegram digest de
 | After upgrading OpenClaw | `./oc doctor --fix`, then `./oc health` |
 | Cron silently reports `ok` but doesn't do the work | Check `config/cron/runs/<jobId>.jsonl` |
 | No morning digest arrived | `tail config/logs/digest.jsonl`; then `./oc cron run <digest-id>` to retry |
+
+## Runtime lifecycle
+
+Treat OpenClaw shutdown, automatic restart settings, and shared VM retirement as separate decisions. Operate from the owning checkout and load its [per-instance environment](#common-commands) before Compose commands. Obtain approval before changing a shared runtime, registering a host job, or reviving a bot that can send messages.
+
+### Identify the owners
+
+| Layer | Owns | Does not own |
+| --- | --- | --- |
+| OpenClaw gateway | This checkout's container, configuration, workspace, and in-container jobs | The shared Docker engine or other checkouts |
+| Docker/Colima | Container runtime and VM availability | Whether OpenClaw should run |
+| `colima-keepalive` | Optional host-side check that starts the selected Colima profile when its status check fails | Gateway startup, container restart policy, or VM repair |
+| OpenClaw cron | Jobs inside the gateway | Host launchd or cronctl registration |
+
+`colima-keepalive` is a cronctl job supervised by macOS launchd, not an OpenClaw cron or Hermes cron. A Colima profile named `default` can contain unrelated containers and Kubernetes labs. It is not an exclusively owned OpenClaw VM. Use one runtime watchdog per selected profile, not one per OpenClaw checkout.
+
+### Install and select the runtime
+
+For a new Colima installation on Apple Silicon:
+
+```bash
+brew install colima docker docker-compose
+docker compose version
+```
+
+If Docker cannot find Compose, follow the [Homebrew Compose plugin discovery instructions](https://formulae.brew.sh/formula/docker-compose). Preserve existing Docker configuration when adding the plugin directory. Docker Desktop is an alternative; its VM and startup settings are not managed by this Colima watchdog.
+
+Inspect existing profiles and Docker contexts before selecting or starting anything:
+
+```bash
+colima list
+docker context ls
+```
+
+After approving the selected profile's startup, start it and verify the engine endpoint. This example selects `default`; use the agreed profile instead if it differs:
+
+```bash
+colima start --profile default
+docker context show
+docker info
+```
+
+Confirm the selected Docker context points to that profile. Colima can select its Docker context during startup. Do not silently redirect another workflow to a different engine. An unavailable engine means its consumers are unknown, not absent. If an existing VM reports I/O errors or fails readiness, stop and use its recovery procedure; do not delete or recreate it as installation cleanup.
+
+### Register the optional host watchdog
+
+Manual Colima startup is sufficient; the watchdog is optional. Install cronctl and its signing identity through the [cronctl installation guide](https://github.com/alastori/cronctl/blob/main/DEVELOPMENT.md#one-time-setup). This repository's setup and cron scripts do not register the host job.
+
+First run `cronctl list`. Inspect `data.jobs` for the existing job name, command, profile, interval, `bundleId`, and `isEnabled`. Also look for differently named jobs that start the same runtime. Do not add a duplicate or overwrite an intentionally paused registration. Agree on the runtime owner, known consumers, and whether automatic startup is wanted.
+
+For a new, explicitly approved registration on Apple Silicon, this example pins the `default` profile and checks executable availability without starting the VM during the readiness probe:
+
+```bash
+cronctl add --name colima-keepalive \
+  --command 'PATH=/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin; colima status --profile default >/dev/null 2>&1 || colima start --profile default' \
+  --every 1800 --timeout-seconds 600 \
+  --requires workflow \
+  --probe-command 'PATH=/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin; command -v colima >/dev/null && command -v docker >/dev/null'
+```
+
+Read the result and re-read the stored job. A failed readiness check can leave an inactive registration; do not bypass it. Check launchd loaded and disabled state using the stored `bundleId`. Review the first scheduled run through `cronctl doctor --name colima-keepalive --explain`, rather than assuming registration proves execution. Existing registrations can use an unqualified `colima status || colima start`; verify their actual target before any separately approved replacement.
+
+The interval is 30 minutes, not continuous recovery. The command attempts startup on any status-check failure. It does not diagnose that failure, repair a disk, or prove the Docker API is healthy. It can undo a deliberate VM stop, so pause it before an approved runtime maintenance window.
+
+### Revive OpenClaw deliberately
+
+Before starting a disabled checkout, confirm which gateway, bot identity, Compose project, and Docker context should run. Review preserved configuration and local overrides. Keep legacy native gateways and other instances of the same polling bot stopped. Restoring a host watchdog does not authorize restarting OpenClaw.
+
+After the runtime is healthy and gateway startup is approved, use the appropriate [setup path](#quick-start) or [secret-rendering path](#1password-service-account-flow), then run `./oc health`. Both setup paths can explicitly start the gateway and resume its in-container jobs.
+
+The base Compose file uses `restart: "no"`. This disables Docker-managed automatic restarts, not explicit starts from `docker compose up`, `docker start`, setup scripts, or other automation. If always-on operation is selected, opt in with a reviewed Compose override that sets the gateway's `restart: unless-stopped`. Use that override consistently, and include it in later shutdown review. Do not infer workload restart policy from the VM watchdog's state.
+
+### Disable the gateway without deleting its data
+
+Preserve the current container restart policy and the Compose files or overrides that will change in a private restore point. Resolve the container from this checkout, then confirm its identity before mutation:
+
+```bash
+docker compose ps --all openclaw-gateway
+docker compose config --format json | python3 -c 'import json,sys; print(json.load(sys.stdin)["services"]["openclaw-gateway"]["restart"])'
+```
+
+Ensure the rendered policy is `no`; remove any opt-in restart setting from the selected override through a reviewed change. A base-file edit does not change an existing container's policy. Apply the policy to the exact verified container, then stop it. Replace the marked container ID:
+
+```bash
+container_id='<verified-container-id>'
+docker update --restart=no "$container_id"
+docker stop --timeout 30 "$container_id"
+docker inspect --format '{{.State.Running}} {{.HostConfig.RestartPolicy.Name}}' "$container_id"
+```
+
+Verify `false no`, and recheck the rendered Compose policy. Inspect discovered dedicated host jobs and legacy native gateways for other startup paths. Disable only verified workload-specific paths. Preserve configuration, credentials, workspace, history, containers, images, and volumes. Do not print complete Docker inspect, rendered Compose configuration, or launch-agent environments into shared logs; they can contain secrets.
+
+### Pause and restore the host watchdog
+
+A gateway stop does not decide the watchdog's fate. Review unrelated runtime consumers and agree on a maintenance window before pausing the shared watchdog. Record its disposition as retained with an owner and reason, paused with restoration conditions, or unresolved. Do not call shutdown complete while that decision is missing.
+
+Resolve the registered label. Stop if the job is missing or ambiguous:
+
+```bash
+label="$(cronctl list | python3 -c '
+import json, sys
+jobs = [j for j in json.load(sys.stdin)["data"]["jobs"] if j["name"] == "colima-keepalive"]
+if len(jobs) != 1:
+    sys.exit("Expected exactly one colima-keepalive registration")
+print(jobs[0]["bundleId"])
+')" || exit 1
+test -n "$label" || exit 1
+domain="gui/$(id -u)"
+plist="$HOME/Library/LaunchAgents/$label.plist"
+launchctl print-disabled "$domain"
+launchctl print "$domain/$label"
+```
+
+Record whether the exact label is loaded and whether it has a disabled override. A missing service is different from an inspection failure. Before changing anything, copy its retained plist and job record to a private restore point outside Git, and verify the copy. Retain any credentials privately. If the label is loaded, an approved pause consists of both operations:
+
+```bash
+launchctl disable "$domain/$label"
+launchctl bootout "$domain/$label"
+```
+
+If already unloaded, disable the label without repeating bootout. Re-read `launchctl print-disabled "$domain"` and confirm the exact label reports `disabled` or `true`. Re-read `launchctl print "$domain/$label"` and confirm it explicitly reports that the service is missing. Neither a generic command error nor a stopped process alone proves a persistent pause. Preserve the plist, bundle, cronctl record, and run history.
+
+This is a launchd-level pause. `cronctl list` can still report `isEnabled: true`; record both states. `cronctl doctor` or `cronctl watchdog --once` can report registration drift during this intentional pause. The current cronctl CLI has no nondestructive pause verb. Do not substitute `cronctl remove` or edit its registry JSON to simulate one. Review any repair, re-registration, or reinstall procedure so it does not silently undo the pause.
+
+To restore only after approval, rerun the discovery block, check the retained plist and current state, and restore the previously selected enabled/loaded state. For a job that was enabled and loaded before the pause:
+
+```bash
+launchctl enable "$domain/$label"
+launchctl bootstrap "$domain" "$plist"
+```
+
+Bootstrap can permit immediate execution; it is not a read-only check. Do not bootstrap an already loaded label. Recheck loaded and disabled state, the cronctl record, and the next run evidence. Restoration of this registration restores neither OpenClaw startup permission nor lost VM data.
+
+### Retire shared infrastructure only after consumer release
+
+For permanent cleanup, inventory all containers, including stopped ones, in the selected Docker context. Check Kubernetes labs, images, volumes, bind mounts, other checkouts, and host jobs that use the runtime. A stopped container can still retain a dependency on a checkout path. If Docker is unavailable, keep the ownership gate open rather than assuming it is safe to remove anything.
+
+Only after the last consumer is released and removal is explicitly approved, preserve the job definition and restoration requirements, then remove that exact registration with `cronctl remove --name colima-keepalive`. Verify registry and launchd absence. This tears down the registration; it is not a reversible pause.
+
+VM, image, volume, source-checkout, and credential removal are separate decisions with their own verified recovery points. Do not run Colima deletion or Docker prune commands merely because OpenClaw is disabled. Record the operational outcome and restoration conditions in the owning project record; keep machine-specific status and private evidence out of this public runbook.
+
+### Sources
+
+- [Colima installation and runtime selection](https://github.com/abiosoft/colima#installation).
+- [Homebrew Compose installation and plugin discovery](https://formulae.brew.sh/formula/docker-compose).
+- [Docker automatic restart policies](https://docs.docker.com/engine/containers/start-containers-automatically/).
+- [cronctl command and installation reference](https://github.com/alastori/cronctl/blob/main/DEVELOPMENT.md#current-cronctl-cli-surface).
 
 ## Troubleshooting
 
