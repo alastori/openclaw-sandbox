@@ -6,7 +6,8 @@ services:
       args:
         OPENCLAW_VERSION: ${OPENCLAW_VERSION:-2026.6.8}
         INSTALL_GEMINI_CLI: ${INSTALL_GEMINI_CLI:-true}
-    restart: unless-stopped
+    # Keep automatic restarts off; explicit start commands still work.
+    restart: "no"
     ports:
       - "127.0.0.1:${OPENCLAW_PORT:-18789}:${OPENCLAW_PORT:-18789}"
     extra_hosts:
