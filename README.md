@@ -550,6 +550,8 @@ The Docker container enforces:
 
 Default crons are created by `bash scripts/setup-crons.sh --telegram-chat-id <ID>`. Scriptable checks and deterministic memory synthesis run as OpenClaw command payloads so they do not depend on model availability. View the schedule with `./oc cron list`. Manage with `./oc cron run <id>`, `./oc cron disable <id>`.
 
+Setup stops before changing jobs if discovery fails or a managed name has multiple enabled copies. Inspect the job IDs and preserve a restore point before an approved repair. For that repair, add `--disable-duplicates` to the setup command. It updates the oldest enabled copy and disables extra enabled copies while retaining their history. Disabled jobs stay disabled. Without a Telegram chat ID, setup leaves all `digest-morning` copies unchanged. Follow [Runtime lifecycle](#runtime-lifecycle) before operating on a disabled deployment.
+
 ## Maintenance
 
 Routine checks to keep the gateway, crons, and model chain healthy.
